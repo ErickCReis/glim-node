@@ -1,10 +1,11 @@
 import { parse } from "@bomb.sh/args";
 import { cancel, intro, isCancel, log, outro, select } from "@clack/prompts";
 import { createTempDrizzleConfig } from "@core/commands/utils.js";
+import "dotenv/config";
 import { spawn } from "node:child_process";
 import { readdir } from "node:fs/promises";
 
-intro("Migrate Gen");
+intro("Migrate Up");
 
 log.step("Verificando módulos");
 const modules = (await readdir("./modules", { withFileTypes: true }))
@@ -32,18 +33,21 @@ if (!moduleInput || !modules.includes(moduleInput)) {
   moduleInput = moduleSelected;
 }
 
-log.step("Gerando migrations");
+log.step("Aplicando migrations");
 
 const drizzleConfigPath = await createTempDrizzleConfig({
   dialect: "postgresql",
-  schema: `./modules/${moduleInput}/db/models/`,
+  dbCredentials: {
+    // biome-ignore lint/style/noNonNullAssertion: <explanation>
+    url: process.env.DB_MS_CRONOGRAMA!,
+  },
   out: `./modules/${moduleInput}/db/migrations`,
 });
 
 await new Promise<void>((resolve, reject) => {
   const child = spawn(
     "pnpm",
-    ["drizzle-kit", "generate", `--config=${drizzleConfigPath}`],
+    ["drizzle-kit", "migrate", `--config=${drizzleConfigPath}`],
     { stdio: "inherit" },
   );
 
@@ -56,8 +60,8 @@ await new Promise<void>((resolve, reject) => {
     }
   });
 }).catch(() => {
-  log.error("Não foi possível gerar as migrations");
+  log.error("Não foi possível aplicar as migrations");
   process.exit(1);
 });
 
-outro("Migrate Gen");
+outro("Migrate Up");

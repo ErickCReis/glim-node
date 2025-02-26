@@ -4,10 +4,12 @@
   "scripts": {
     "dev": "tsx watch modules/index.ts",
     "check": "biome check --write .",
-    "migrate:gen": "tsx core/commands/migrate-gen.ts"
+    "migrate:gen": "tsx core/commands/migrate-gen.ts",
+    "migrate:up": "tsx core/commands/migrate-up.ts"
   },
   "dependencies": {
     "@hono/node-server": "^1.13.8",
+    "@hono/standard-validator": "^0.1.2",
     "dotenv": "^16.4.7",
     "drizzle-orm": "^0.39.3",
     "hono": "^4.7.2",
@@ -15,8 +17,8 @@
     "zod": "^3.24.2"
   },
   "devDependencies": {
-    "@bomb.sh/args": "^0.3.0",
     "@biomejs/biome": "1.9.4",
+    "@bomb.sh/args": "^0.3.0",
     "@clack/prompts": "^0.10.0",
     "@types/node": "^20.11.17",
     "@types/pg": "^8.11.11",

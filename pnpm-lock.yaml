@@ -11,6 +11,9 @@ importers:
       '@hono/node-server':
         specifier: ^1.13.8
         version: 1.13.8(hono@4.7.2)
+      '@hono/standard-validator':
+        specifier: ^0.1.2
+        version: 0.1.2(@standard-schema/spec@1.0.0)(hono@4.7.2)
       dotenv:
         specifier: ^16.4.7
         version: 16.4.7
@@ -552,6 +555,15 @@ packages:
     engines: {node: '>=18.14.1'}
     peerDependencies:
       hono: ^4
+
+  '@hono/standard-validator@0.1.2':
+    resolution: {integrity: sha512-mVyv2fpx/o0MNAEhjXhvuVbW3BWTGnf8F4w8ZifztE+TWXjUAKr7KAOZfcDhVrurgVhKw7RbTnEog2beZM6QtQ==}
+    peerDependencies:
+      '@standard-schema/spec': 1.0.0
+      hono: '>=3.9.0'
+
+  '@standard-schema/spec@1.0.0':
+    resolution: {integrity: sha512-m2bOd0f2RT9k8QJx1JN85cZYyH1RqFBdlwtkSlf4tBDYLCiiZnv1fIIwacK6cqwXavOydf0NPToMQgpKq+dVlA==}
 
   '@types/node@20.17.19':
     resolution: {integrity: sha512-LEwC7o1ifqg/6r2gn9Dns0f1rhK+fPFDoMiceTJ6kWmVk6bgXBI/9IOWfVan4WiAavK9pIVWdX0/e3J+eEUh5A==}
@@ -1095,6 +1107,13 @@ snapshots:
   '@hono/node-server@1.13.8(hono@4.7.2)':
     dependencies:
       hono: 4.7.2
+
+  '@hono/standard-validator@0.1.2(@standard-schema/spec@1.0.0)(hono@4.7.2)':
+    dependencies:
+      '@standard-schema/spec': 1.0.0
+      hono: 4.7.2
+
+  '@standard-schema/spec@1.0.0': {}
 
   '@types/node@20.17.19':
     dependencies:

@@ -2,7 +2,9 @@ import { createModule } from "@core/gn-module.js";
 import { env } from "@ms-cronograma/env.js";
 import { router } from "@ms-cronograma/router.js";
 
-export const mscronograma = createModule("ms-cronograma")({
+export const mscronograma = createModule("ms-cronograma", {
+  db: { default: "postgres" },
+})({
   middleware: [],
   router,
   env,
