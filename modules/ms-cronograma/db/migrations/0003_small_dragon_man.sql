@@ -1,0 +1,1 @@
+ALTER TABLE "cronogramas" RENAME COLUMN "ids1" TO "ids1as";

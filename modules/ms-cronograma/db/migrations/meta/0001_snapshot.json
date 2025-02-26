@@ -1,0 +1,44 @@
+{
+  "id": "6457a23a-9eb3-40c3-bb5a-a916a8802981",
+  "prevId": "9ee70ee8-e37c-4ced-bbac-3d42b97516dc",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.cronogramas": {
+      "name": "cronogramas",
+      "schema": "",
+      "columns": {
+        "ids": {
+          "name": "ids",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "nome": {
+          "name": "nome",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {},
+  "schemas": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}

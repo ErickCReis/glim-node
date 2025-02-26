@@ -1,0 +1,27 @@
+{
+  "name": "glim-node",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch modules/index.ts",
+    "check": "biome check --write .",
+    "migrate:gen": "tsx core/commands/migrate-gen.ts"
+  },
+  "dependencies": {
+    "@hono/node-server": "^1.13.8",
+    "dotenv": "^16.4.7",
+    "drizzle-orm": "^0.39.3",
+    "hono": "^4.7.2",
+    "pg": "^8.13.3",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@bomb.sh/args": "^0.3.0",
+    "@biomejs/biome": "1.9.4",
+    "@clack/prompts": "^0.10.0",
+    "@types/node": "^20.11.17",
+    "@types/pg": "^8.11.11",
+    "drizzle-kit": "^0.30.4",
+    "tsx": "^4.19.3",
+    "typescript": "^5.7.3"
+  }
+}
