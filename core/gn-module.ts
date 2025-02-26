@@ -1,70 +1,52 @@
 import { type NodePgDatabase, drizzle } from "drizzle-orm/node-postgres";
-import type { MiddlewareHandler } from "hono";
+import { Hono } from "hono";
 import pg from "pg";
-import type { z } from "zod";
-import type { GnRouter } from "./gn-router.js";
+import { z } from "zod";
 
 export function createModule<
   TNamespace extends string,
-  TDB extends
-    | {
-        default: "postgres";
-      }
-    | undefined = undefined,
+  TEnv extends z.Schema = z.ZodNever,
+  TDB extends "postgres" | undefined = undefined
 >(
   namespace: TNamespace,
   config: {
+    env?: TEnv;
     db?: TDB;
-  },
+  }
 ) {
-  return <TEnv extends z.Schema = z.ZodNever>({
+  const envConfig = config.env;
+  let env: z.infer<TEnv> | undefined = undefined;
+  if (envConfig) {
+    env = envConfig.parse(process.env);
+  }
+
+  const dbConfig = config.db;
+  let db: NodePgDatabase | undefined = undefined;
+  if (dbConfig) {
+    const envDBSchema = z.object({ DB_MS_CRONOGRAMA: z.string() });
+    const envDB = envDBSchema.parse(process.env);
+    const pool = new pg.Pool({ connectionString: envDB.DB_MS_CRONOGRAMA });
+    db = drizzle(pool);
+  }
+
+  return {
+    namespace,
     env,
-    router,
-    middleware,
-  }: {
-    env: TEnv;
-    router: GnRouter<TNamespace>;
-    middleware: Array<MiddlewareHandler>;
-  }): TDB extends undefined
-    ? {
-        namespace: TNamespace;
-        env: z.infer<TEnv>;
-        router: GnRouter<TNamespace>;
-        middleware: Array<MiddlewareHandler>;
-      }
-    : {
-        namespace: TNamespace;
-        env: z.infer<TEnv>;
-        db: NodePgDatabase;
-        router: GnRouter<TNamespace>;
-        middleware: Array<MiddlewareHandler>;
-      } => {
-    const envParsed = env.parse(process.env) as z.infer<TEnv>;
+    db,
+    _router: null,
+    loadRouter<TRouter extends Hono>(
+      router: (basePath: TNamespace) => TRouter
+    ): TRouter {
+      const r = router(namespace);
 
-    const dbConfig = config.db;
-    if (dbConfig) {
-      const pool = new pg.Pool({
-        connectionString: envParsed.DB_MS_CRONOGRAMA,
-      });
+      // @ts-expect-error
+      this._router = r;
 
-      return {
-        namespace,
-        env: envParsed,
-        db: drizzle(pool),
-        router,
-        middleware,
-      };
-    }
-
-    return {
-      namespace,
-      env: envParsed,
-      router,
-      middleware,
-    };
+      return r;
+    },
   };
 }
 
 export type GnModule<TNamespace extends string = string> = ReturnType<
-  ReturnType<typeof createModule<TNamespace>>
+  typeof createModule<TNamespace>
 >;

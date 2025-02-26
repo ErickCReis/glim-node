@@ -1,13 +1,12 @@
 import { createModule } from "@core/gn-module.js";
-import { env } from "@ms-cronograma/env.js";
-import { router } from "@ms-cronograma/router.js";
+import { router } from "./router.js";
 
 export const mscronograma = createModule("ms-cronograma", {
-  db: { default: "postgres" },
-})({
-  middleware: [],
-  router,
-  env,
+  db: "postgres",
 });
 
-export type Client = NonNullable<(typeof router)["v1"]>;
+const mscronogramaRouter = mscronograma.loadRouter((basePath) =>
+  router.basePath(basePath)
+);
+
+export type Client = NonNullable<typeof mscronogramaRouter>;

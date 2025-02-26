@@ -18,23 +18,8 @@ export function start(modules: Array<GnModule>) {
   app.get("/im-alive", (c) => c.json(["ok"]));
 
   for (const module of modules) {
-    const router = module.router;
-
-    if (router.v1) {
-      app.route("/", router.v1);
-    }
-
-    if (router.v2) {
-      app.route("/", router.v2);
-    }
-
-    if (router.v3) {
-      app.route("/", router.v3);
-    }
-
-    for (const middleware of module.middleware) {
-      app.use(`/${module.namespace}/*`, middleware);
-    }
+    // @ts-expect-error
+    app.route("/", module._router);
   }
 
   showRoutes(app, { verbose: true, colorize: true });
@@ -46,6 +31,6 @@ export function start(modules: Array<GnModule>) {
     },
     (info) => {
       console.log(`Server is running on http://localhost:${info.port}`);
-    },
+    }
   );
 }
