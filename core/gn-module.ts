@@ -1,18 +1,19 @@
 import { type NodePgDatabase, drizzle } from "drizzle-orm/node-postgres";
 import { Hono } from "hono";
+import { hc } from "hono/client";
 import pg from "pg";
 import { z } from "zod";
 
 export function createModule<
   TNamespace extends string,
   TEnv extends z.Schema = z.ZodNever,
-  TDB extends "postgres" | undefined = undefined
+  TDB extends "postgres" | undefined = undefined,
 >(
   namespace: TNamespace,
   config: {
     env?: TEnv;
     db?: TDB;
-  }
+  },
 ) {
   const envConfig = config.env;
   let env: z.infer<TEnv> | undefined = undefined;
@@ -34,15 +35,10 @@ export function createModule<
     env,
     db,
     _router: null,
-    loadRouter<TRouter extends Hono>(
-      router: (basePath: TNamespace) => TRouter
-    ): TRouter {
-      const r = router(namespace);
-
+    loadRouter<TRouter extends Hono>(router: TRouter) {
       // @ts-expect-error
-      this._router = r;
-
-      return r;
+      this._router = new Hono().basePath(namespace).route("", router);
+      return hc<TRouter>(`http://localhost:3000/${namespace}`);
     },
   };
 }
