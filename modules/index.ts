@@ -1,4 +1,4 @@
 import { start } from "@core/index.js";
-import { mscronograma as MSCronograma } from "@ms-cronograma/index.js";
+import { mscronograma } from "@ms-cronograma/index.js";
 
-start([MSCronograma]);
+start([mscronograma]);

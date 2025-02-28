@@ -1,18 +1,19 @@
-import { type NodePgDatabase, drizzle } from "drizzle-orm/node-postgres";
+import { drizzle } from "drizzle-orm/node-postgres";
 import { Hono } from "hono";
 import { hc } from "hono/client";
 import pg from "pg";
 import { z } from "zod";
 
-export function createModule<
+export async function createModule<
   TNamespace extends string,
   TEnv extends z.Schema = z.ZodNever,
-  TDB extends "postgres" | undefined = undefined,
 >(
   namespace: TNamespace,
   config: {
     env?: TEnv;
-    db?: TDB;
+    db: "postgres";
+  } = {
+    db: "postgres",
   },
 ) {
   const envConfig = config.env;
@@ -21,14 +22,7 @@ export function createModule<
     env = envConfig.parse(process.env);
   }
 
-  const dbConfig = config.db;
-  let db: NodePgDatabase | undefined = undefined;
-  if (dbConfig) {
-    const envDBSchema = z.object({ DB_MS_CRONOGRAMA: z.string() });
-    const envDB = envDBSchema.parse(process.env);
-    const pool = new pg.Pool({ connectionString: envDB.DB_MS_CRONOGRAMA });
-    db = drizzle(pool);
-  }
+  const db = await createPostgresConnection(namespace);
 
   return {
     namespace,
@@ -43,6 +37,23 @@ export function createModule<
   };
 }
 
-export type GnModule<TNamespace extends string = string> = ReturnType<
-  typeof createModule<TNamespace>
+export type GnModule<TNamespace extends string = string> = Awaited<
+  ReturnType<typeof createModule<TNamespace>>
 >;
+
+// HELPERS
+
+async function createPostgresConnection(namespace: string) {
+  const upperNamespace = namespace.replaceAll("-", "_").toUpperCase();
+  const dbEnvSchema = z.object({
+    [`DB_${upperNamespace}_HOST`]: z.string(),
+    [`DB_${upperNamespace}_DATABASE`]: z.string(),
+    [`DB_${upperNamespace}_USERNAME`]: z.string(),
+    [`DB_${upperNamespace}_PASSWORD`]: z.string(),
+  });
+
+  const dbEnv = dbEnvSchema.parse(process.env);
+  const connectionString = `postgresql://${dbEnv[`DB_${upperNamespace}_USERNAME`]}:${dbEnv[`DB_${upperNamespace}_PASSWORD`]}@${dbEnv[`DB_${upperNamespace}_HOST`]}/${dbEnv[`DB_${upperNamespace}_DATABASE`]}`;
+
+  return drizzle(new pg.Pool({ connectionString }));
+}
