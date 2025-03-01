@@ -4,9 +4,26 @@ import { hc } from "hono/client";
 import pg from "pg";
 import { z } from "zod";
 
+const envOptions = ["local", "development", "staging", "production"] as const;
+const envOptionsMap = {
+  production: "PRD",
+  staging: "STG",
+  development: "DEV",
+  local: "DEV",
+} as const satisfies Record<(typeof envOptions)[number], string>;
+
+export const appEnv = z
+  .object({
+    APP_NAME: z.string(),
+    APP_ENV: z
+      .enum(["local", "development", "staging", "production"])
+      .transform((v) => envOptionsMap[v]),
+  })
+  .parse(process.env);
+
 export async function createModule<
   TNamespace extends string,
-  TEnv extends z.Schema = z.ZodNever,
+  TEnv extends z.ZodType<object> = z.ZodType<object>,
 >(
   namespace: TNamespace,
   config: {
@@ -17,7 +34,7 @@ export async function createModule<
   },
 ) {
   const envConfig = config.env;
-  let env: z.infer<TEnv> | undefined = undefined;
+  let env: z.infer<TEnv> = {};
   if (envConfig) {
     env = envConfig.parse(process.env);
   }
@@ -26,11 +43,13 @@ export async function createModule<
 
   return {
     namespace,
-    env,
+    env: {
+      ...appEnv,
+      ...env,
+    },
     db,
-    _router: null,
+    _router: null as unknown as Hono,
     loadRouter<TRouter extends Hono>(router: TRouter) {
-      // @ts-expect-error
       this._router = new Hono().basePath(namespace).route("", router);
       return hc<TRouter>(`http://localhost:3000/${namespace}`);
     },

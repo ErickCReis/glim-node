@@ -1,19 +1,19 @@
 import "dotenv/config";
 
-import type { GnModule } from "@core/gn-module.js";
+import { type GnModule, appEnv } from "@core/gn-module.js";
+import { corsMiddleware } from "@core/middleware/cors-middleware.js";
+import { loggerMiddleware } from "@core/middleware/logger-middleware.js";
 import { serve } from "@hono/node-server";
 import { Hono } from "hono";
 import { showRoutes } from "hono/dev";
-import { logger } from "hono/logger";
-import { prettyJSON } from "hono/pretty-json";
 import { requestId } from "hono/request-id";
 
 export function start(modules: Array<GnModule>) {
   const app = new Hono({ strict: false });
 
-  app.use("*", logger());
-  app.use("*", prettyJSON());
-  app.use("*", requestId());
+  app.use("*", requestId({ headerName: "trace-id" }));
+  app.use("*", loggerMiddleware);
+  app.use("*", corsMiddleware);
 
   app.get("/im-alive", async (c) => {
     const info: Record<string, { status: "alive" | "dead"; latency: number }> =
@@ -31,15 +31,17 @@ export function start(modules: Array<GnModule>) {
       }
     }
 
-    return c.json(info);
+    const someIsDead = Object.values(info).some((i) => i.status === "dead");
+    return c.json(info, someIsDead ? 500 : 200);
   });
 
   for (const module of modules) {
-    // @ts-expect-error
     app.route("/", module._router);
   }
 
-  showRoutes(app, { verbose: true, colorize: true });
+  if (appEnv.APP_ENV === "DEV") {
+    showRoutes(app, { verbose: true });
+  }
 
   serve(
     {
