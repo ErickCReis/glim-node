@@ -3,19 +3,23 @@ import "dotenv/config";
 import { type GnModule, appEnv } from "@core/gn-module.js";
 import { corsMiddleware } from "@core/middleware/cors-middleware.js";
 import { loggerMiddleware } from "@core/middleware/logger-middleware.js";
+import { createLogger } from "@core/utils/logger.js";
 import { serve } from "@hono/node-server";
+import { getConnInfo } from "@hono/node-server/conninfo";
 import { Hono } from "hono";
 import { showRoutes } from "hono/dev";
+import { HTTPException } from "hono/http-exception";
 import { requestId } from "hono/request-id";
+
+const mainLogger = createLogger();
 
 export function start(modules: Array<GnModule>) {
   const app = new Hono({ strict: false });
 
   app.use("*", requestId({ headerName: "trace-id" }));
-  app.use("*", loggerMiddleware);
   app.use("*", corsMiddleware);
 
-  app.get("/im-alive", async (c) => {
+  app.get("/im-alive", loggerMiddleware(mainLogger), async (c) => {
     const info: Record<string, { status: "alive" | "dead"; latency: number }> =
       {};
 
@@ -36,8 +40,61 @@ export function start(modules: Array<GnModule>) {
   });
 
   for (const module of modules) {
+    app.use(`/${module.namespace}/*`, loggerMiddleware(module.logger));
     app.route("/", module._router);
   }
+
+  app.onError((err, c) => {
+    const path = new URL(c.req.url).pathname;
+    const logger =
+      modules.find((m) => path.startsWith(`/${m.namespace}/`))?.logger ??
+      mainLogger;
+
+    const traceId = c.get("requestId");
+
+    if (err instanceof HTTPException) {
+      const data = {
+        "trace-id": traceId,
+        status: err.status,
+        error: err.message,
+      };
+      void logger("ERROR", data);
+      return c.json(data, err.status);
+    }
+
+    const stack = err.stack?.split("\n").map((l) => l.trim());
+
+    const info = getConnInfo(c);
+    const host = c.req.header("host") ?? "";
+    const remoteAddress = info.remote.address ?? "";
+    const remotePort = info.remote.port ?? 0;
+
+    const data = {
+      "trace-id": traceId,
+      status: 500,
+      error: stack?.shift(),
+      extras: {
+        status: 500,
+
+        method: c.req.method,
+        url: path,
+        host,
+        remoteAddress,
+        remotePort,
+
+        "stack-trace": stack,
+      },
+    };
+
+    void logger("ERROR", data);
+
+    if (appEnv.APP_ENV !== "DEV") {
+      // @ts-expect-error
+      data.extras = undefined;
+    }
+
+    return c.json(data, 500);
+  });
 
   if (appEnv.APP_ENV === "DEV") {
     showRoutes(app, { verbose: true });

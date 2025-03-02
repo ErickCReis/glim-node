@@ -1,3 +1,4 @@
+import { createLogger } from "@core/utils/logger.js";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { Hono } from "hono";
 import { hc } from "hono/client";
@@ -48,6 +49,7 @@ export async function createModule<
       ...env,
     },
     db,
+    logger: createLogger(namespace),
     _router: null as unknown as Hono,
     loadRouter<TRouter extends Hono>(router: TRouter) {
       this._router = new Hono().basePath(namespace).route("", router);
