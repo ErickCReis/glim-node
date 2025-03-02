@@ -1,4 +1,4 @@
-import { appEnv } from "@core/gn-module.js";
+import { mainEnv } from "@core/gn-module.js";
 import { toISOStringWithTimezone } from "@core/utils/date.js";
 import { appendFile } from "node:fs/promises";
 
@@ -13,8 +13,8 @@ export function createLogger(namespace = "main"): Logger {
       `${JSON.stringify({
         severity,
         timestamp: toISOStringWithTimezone(new Date()),
-        appname: `${appEnv.APP_NAME}/${namespace}`,
-        env: appEnv.APP_ENV,
+        appname: `${mainEnv.APP_NAME}/${namespace}`,
+        env: mainEnv.APP_ENV,
         ...extra,
       })}\n`,
     );

@@ -1,6 +1,6 @@
 import "dotenv/config";
 
-import { type GnModule, appEnv } from "@core/gn-module.js";
+import { type GnModule, mainEnv } from "@core/gn-module.js";
 import { corsMiddleware } from "@core/middleware/cors-middleware.js";
 import { loggerMiddleware } from "@core/middleware/logger-middleware.js";
 import { createLogger } from "@core/utils/logger.js";
@@ -88,7 +88,7 @@ export function start(modules: Array<GnModule>) {
 
     void logger("ERROR", data);
 
-    if (appEnv.APP_ENV !== "DEV") {
+    if (mainEnv.APP_ENV !== "DEV") {
       // @ts-expect-error
       data.extras = undefined;
     }
@@ -96,7 +96,7 @@ export function start(modules: Array<GnModule>) {
     return c.json(data, 500);
   });
 
-  if (appEnv.APP_ENV === "DEV") {
+  if (mainEnv.APP_ENV === "DEV") {
     showRoutes(app, { verbose: true });
   }
 

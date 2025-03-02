@@ -29,5 +29,3 @@ export const auth = {
     return this.data?.[key] as Data[K] | undefined;
   },
 };
-
-const a = auth.get("id");

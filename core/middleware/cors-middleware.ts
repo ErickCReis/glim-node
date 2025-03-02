@@ -1,7 +1,8 @@
+import { mainEnv } from "@core/gn-module.js";
 import { cors } from "hono/cors";
 
 export const corsMiddleware = cors({
-  origin: "*", //env('APP_CORS_ORIGIN', '*'))
+  origin: mainEnv.APP_CORS_ORIGIN,
   allowHeaders: [
     "Accept",
     "Content-Type",

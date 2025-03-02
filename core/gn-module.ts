@@ -13,12 +13,13 @@ const envOptionsMap = {
   local: "DEV",
 } as const satisfies Record<(typeof envOptions)[number], string>;
 
-export const appEnv = z
+export const mainEnv = z
   .object({
     APP_NAME: z.string(),
     APP_ENV: z
       .enum(["local", "development", "staging", "production"])
       .transform((v) => envOptionsMap[v]),
+    APP_CORS_ORIGIN: z.string().optional().default("*"),
   })
   .parse(process.env);
 
@@ -45,7 +46,7 @@ export async function createModule<
   return {
     namespace,
     env: {
-      ...appEnv,
+      ...mainEnv,
       ...env,
     },
     db,
@@ -66,15 +67,20 @@ export type GnModule<TNamespace extends string = string> = Awaited<
 
 async function createPostgresConnection(namespace: string) {
   const upperNamespace = namespace.replaceAll("-", "_").toUpperCase();
-  const dbEnvSchema = z.object({
-    [`DB_${upperNamespace}_HOST`]: z.string(),
-    [`DB_${upperNamespace}_DATABASE`]: z.string(),
-    [`DB_${upperNamespace}_USERNAME`]: z.string(),
-    [`DB_${upperNamespace}_PASSWORD`]: z.string(),
-  });
+  const dbEnv = z
+    .object({
+      [`DB_${upperNamespace}_HOST`]: z.string(),
+      [`DB_${upperNamespace}_DATABASE`]: z.string(),
+      [`DB_${upperNamespace}_USERNAME`]: z.string(),
+      [`DB_${upperNamespace}_PASSWORD`]: z.string(),
+    })
+    .parse(process.env);
 
-  const dbEnv = dbEnvSchema.parse(process.env);
-  const connectionString = `postgresql://${dbEnv[`DB_${upperNamespace}_USERNAME`]}:${dbEnv[`DB_${upperNamespace}_PASSWORD`]}@${dbEnv[`DB_${upperNamespace}_HOST`]}/${dbEnv[`DB_${upperNamespace}_DATABASE`]}`;
+  const host = dbEnv[`DB_${upperNamespace}_HOST`];
+  const database = dbEnv[`DB_${upperNamespace}_DATABASE`];
+  const usename = dbEnv[`DB_${upperNamespace}_USERNAME`];
+  const password = dbEnv[`DB_${upperNamespace}_PASSWORD`];
+  const connectionString = `postgresql://${usename}:${password}@${host}/${database}`;
 
   return drizzle(new pg.Pool({ connectionString }));
 }
