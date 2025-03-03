@@ -1,8 +1,9 @@
 import { createModule } from "@core/gn-module.js";
-import { router } from "./router.js";
+import { router } from "@ms-cronograma/router.js";
 
 export const mscronograma = await createModule("ms-cronograma", {
   db: "postgres",
+  cache: "redis",
 });
 
 export const client = mscronograma.loadRouter(router);

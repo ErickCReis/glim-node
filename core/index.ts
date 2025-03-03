@@ -6,10 +6,12 @@ import { loggerMiddleware } from "@core/middleware/logger-middleware.js";
 import { createLogger } from "@core/utils/logger.js";
 import { serve } from "@hono/node-server";
 import { getConnInfo } from "@hono/node-server/conninfo";
+import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 import { Hono } from "hono";
 import { showRoutes } from "hono/dev";
 import { HTTPException } from "hono/http-exception";
 import { requestId } from "hono/request-id";
+import type { Redis } from "ioredis";
 
 const mainLogger = createLogger();
 
@@ -24,15 +26,30 @@ export function start(modules: Array<GnModule>) {
       {};
 
     for (const m of modules) {
-      const db = m.db;
-      if (db) {
-        info[`db.${m.namespace}`] = await check(() =>
-          db
-            .execute("SELECT 1")
-            .then((r) => r.rowCount === 1)
-            .catch(() => false),
-        );
+      // @ts-expect-error
+      const db: NodePgDatabase | undefined = m.db;
+      if (!db) {
+        continue;
       }
+
+      info[`db.${m.namespace}`] = await check(() =>
+        db
+          .execute("SELECT 1")
+          .then((r) => r.rowCount === 1)
+          .catch(() => false),
+      );
+    }
+
+    for (const m of modules) {
+      // @ts-expect-error
+      const cache: Redis | undefined = m.cache;
+      if (!cache) {
+        continue;
+      }
+
+      info[`cache.${m.namespace}`] = await check(() =>
+        cache.ping().then((r) => r === "PONG"),
+      );
     }
 
     const someIsDead = Object.values(info).some((i) => i.status === "dead");
@@ -40,6 +57,11 @@ export function start(modules: Array<GnModule>) {
   });
 
   for (const module of modules) {
+    if (!module._router) {
+      console.error(`Nenhum router fornecido para ${module.namespace}`);
+      process.exit(1);
+    }
+
     app.use(`/${module.namespace}/*`, loggerMiddleware(module.logger));
     app.route("/", module._router);
   }
@@ -114,9 +136,10 @@ export function start(modules: Array<GnModule>) {
 async function check(fn: () => Promise<boolean> | boolean) {
   const startTime = process.hrtime();
   const success = await fn();
-  const elapsedSeconds = process.hrtime(startTime)[1] / 1_000_000;
+  const elapsedTime = process.hrtime(startTime);
+  const elapsedMS = (elapsedTime[0] * 1e9 + elapsedTime[1]) / 1e6;
   return {
     status: success ? ("alive" as const) : ("dead" as const),
-    latency: elapsedSeconds,
+    latency: elapsedMS,
   };
 }
