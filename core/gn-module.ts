@@ -1,4 +1,4 @@
-import { createLogger } from "@core/utils/logger.js";
+import { type Logger, createLogger } from "@core/utils/logger.js";
 import { Hono } from "hono";
 import { hc } from "hono/client";
 import { z } from "zod";
@@ -7,6 +7,7 @@ import { z } from "zod";
 let pgCache: typeof import("pg");
 let drizzleCache: typeof import("drizzle-orm/node-postgres").drizzle;
 let redisCache: typeof import("ioredis").Redis;
+let s3Cache: typeof import("@core/helpers/s3.js").createS3Client;
 
 // biome-ignore lint/complexity/noBannedTypes:
 type EmptyObject = {};
@@ -30,17 +31,18 @@ export const mainEnv = z
   .parse(process.env);
 
 // Define config type that allows for partial configuration
-type ModuleConfig = {
+type ModuleConfig<TStorageKeys extends ReadonlyArray<string> | undefined> = {
   db?: "postgres";
   cache?: "redis";
+  storage?: TStorageKeys;
 };
 
 // Define base module without optional components
 type BaseModule<TNamespace extends string> = {
   namespace: TNamespace;
   env: typeof mainEnv;
-  logger: ReturnType<typeof createLogger>;
-  _router: null | Hono;
+  logger: Logger;
+  _router: Hono | null;
   loadRouter<TRouter extends Hono>(
     router: TRouter,
   ): ReturnType<typeof hc<TRouter>>;
@@ -51,14 +53,25 @@ type ModuleWithOptions<
   TNamespace extends string,
   HasDB extends boolean = false,
   HasCache extends boolean = false,
+  StorageKeys extends ReadonlyArray<string> | undefined = undefined,
 > = BaseModule<TNamespace> &
   (HasDB extends true ? { db: ReturnType<typeof drizzleCache> } : EmptyObject) &
-  (HasCache extends true ? { cache: typeof redisCache } : EmptyObject);
+  (HasCache extends true ? { cache: typeof redisCache } : EmptyObject) &
+  (StorageKeys extends undefined
+    ? EmptyObject
+    : {
+        storage: {
+          [K in StorageKeys extends ReadonlyArray<infer U>
+            ? U
+            : never]: ReturnType<typeof s3Cache>;
+        };
+      });
 
 // Implementation with proper type handling
 export async function createModule<
   TNamespace extends string,
-  TConfig extends ModuleConfig = ModuleConfig,
+  StorageKeys extends ReadonlyArray<string> | undefined,
+  TConfig extends ModuleConfig<StorageKeys>,
 >(
   namespace: TNamespace,
   config?: TConfig,
@@ -66,7 +79,8 @@ export async function createModule<
   ModuleWithOptions<
     TNamespace,
     TConfig extends { db: "postgres" } ? true : false,
-    TConfig extends { cache: "redis" } ? true : false
+    TConfig extends { cache: "redis" } ? true : false,
+    TConfig["storage"]
   >
 > {
   // Create base module
@@ -93,18 +107,40 @@ export async function createModule<
       ? { ...moduleWithDb, cache: await createRedisConnection(namespace) }
       : moduleWithDb;
 
+  // Add storages if configured
+  const storages = await Promise.all(
+    (config?.storage ?? []).map((s) => createS3Connection(s)),
+  );
+
+  const moduleWithStorage =
+    (config?.storage?.length ?? 0) > 0
+      ? {
+          ...moduleWithCache,
+          storage: config?.storage?.reduce(
+            (acc, s, i) => {
+              // biome-ignore lint/style/noNonNullAssertion: <explanation>
+              acc[s] = storages[i]!;
+              return acc;
+            },
+            {} as Record<string, ReturnType<typeof s3Cache>>,
+          ),
+        }
+      : moduleWithCache;
+
   // @ts-expect-error
-  return moduleWithCache; // Type assertion needed due to conditional return type
+  return moduleWithStorage; // Type assertion needed due to conditional return type
 }
 
 // Updated GnModule type with full option support
 export type GnModule<
   TNamespace extends string = string,
-  TConfig extends ModuleConfig = ModuleConfig,
+  StorageKeys extends ReadonlyArray<string> | undefined = undefined,
+  TConfig extends ModuleConfig<StorageKeys> = ModuleConfig<StorageKeys>,
 > = ModuleWithOptions<
   TNamespace,
   TConfig extends { db: "postgres" } ? true : false,
-  TConfig extends { cache: "redis" } ? true : false
+  TConfig extends { cache: "redis" } ? true : false,
+  TConfig["storage"]
 >;
 
 // Helper functions
@@ -154,4 +190,34 @@ async function createRedisConnection(namespace: string) {
   }
 
   return new redisCache({ host, port });
+}
+
+async function createS3Connection(storageName: string) {
+  const s3Env = z
+    .object({
+      [`S3_${storageName}_REGION`]: z.string(),
+      [`S3_${storageName}_BUCKET`]: z.string(),
+      [`S3_${storageName}_ENDPOINT`]: z.string().optional(),
+      [`S3_${storageName}_ACCESS_KEY`]: z.string(),
+      [`S3_${storageName}_SECRET_KEY`]: z.string(),
+    })
+    .parse(process.env);
+
+  const region = s3Env[`S3_${storageName}_REGION`] as string;
+  const bucket = s3Env[`S3_${storageName}_BUCKET`] as string;
+  const endpoint = s3Env[`S3_${storageName}_ENDPOINT`];
+  const accessKeyId = s3Env[`S3_${storageName}_ACCESS_KEY`] as string;
+  const secretAccessKey = s3Env[`S3_${storageName}_SECRET_KEY`] as string;
+
+  if (!s3Cache) {
+    s3Cache = (await import("@core/helpers/s3.js")).createS3Client;
+  }
+
+  return s3Cache({
+    region,
+    bucket,
+    endpoint,
+    accessKeyId,
+    secretAccessKey,
+  });
 }

@@ -1,6 +1,7 @@
 import "dotenv/config";
 
 import { type GnModule, mainEnv } from "@core/gn-module.js";
+import type { S3 } from "@core/helpers/s3.js";
 import { corsMiddleware } from "@core/middleware/cors-middleware.js";
 import { loggerMiddleware } from "@core/middleware/logger-middleware.js";
 import { createLogger } from "@core/utils/logger.js";
@@ -50,6 +51,23 @@ export function start(modules: Array<GnModule>) {
       info[`cache.${m.namespace}`] = await check(() =>
         cache.ping().then((r) => r === "PONG"),
       );
+    }
+
+    for (const m of modules) {
+      // @ts-expect-error
+      const storages: Record<string, S3> | undefined = m.storage;
+      if (!storages) {
+        continue;
+      }
+
+      for (const [name, storage] of Object.entries(storages)) {
+        info[`storage.${name}`] = await check(() =>
+          storage
+            .listBuckets()
+            .then(() => true)
+            .catch(() => false),
+        );
+      }
     }
 
     const someIsDead = Object.values(info).some((i) => i.status === "dead");
