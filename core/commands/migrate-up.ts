@@ -1,9 +1,11 @@
+import "dotenv/config";
+
+import { spawn } from "node:child_process";
+import { readdir } from "node:fs/promises";
 import { parse } from "@bomb.sh/args";
 import { cancel, intro, isCancel, log, outro, select } from "@clack/prompts";
 import { createTempDrizzleConfig } from "@core/commands/utils.js";
-import "dotenv/config";
-import { spawn } from "node:child_process";
-import { readdir } from "node:fs/promises";
+import { getPostgresEnv } from "@core/helpers/env.js";
 
 intro("Migrate Up");
 
@@ -35,11 +37,12 @@ if (!moduleInput || !modules.includes(moduleInput)) {
 
 log.step("Aplicando migrations");
 
+const dbEnv = getPostgresEnv(moduleInput);
+
 const drizzleConfigPath = await createTempDrizzleConfig({
   dialect: "postgresql",
   dbCredentials: {
-    // biome-ignore lint/style/noNonNullAssertion: <explanation>
-    url: process.env.DB_MS_CRONOGRAMA!,
+    url: dbEnv.url,
   },
   out: `./modules/${moduleInput}/db/migrations`,
 });

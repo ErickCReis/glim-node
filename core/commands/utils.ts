@@ -1,7 +1,7 @@
-import type { Config } from "drizzle-kit";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
+import type { Config } from "drizzle-kit";
 
 export async function createTempDrizzleConfig(config: Config) {
   const content = `

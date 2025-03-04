@@ -1,4 +1,10 @@
-import { type Logger, createLogger } from "@core/utils/logger.js";
+import {
+  coreEnv,
+  getPostgresEnv,
+  getRedisEnv,
+  getS3Env,
+} from "@core/helpers/env.js";
+import { type Logger, createLogger } from "@core/helpers/logger.js";
 import { Hono } from "hono";
 import { hc } from "hono/client";
 import { z } from "zod";
@@ -12,24 +18,6 @@ let s3Cache: typeof import("@core/helpers/s3.js").createS3Client;
 // biome-ignore lint/complexity/noBannedTypes:
 type EmptyObject = {};
 
-const envOptions = ["local", "development", "staging", "production"] as const;
-const envOptionsMap = {
-  production: "PRD",
-  staging: "STG",
-  development: "DEV",
-  local: "DEV",
-} as const satisfies Record<(typeof envOptions)[number], string>;
-
-export const mainEnv = z
-  .object({
-    APP_NAME: z.string(),
-    APP_ENV: z
-      .enum(["local", "development", "staging", "production"])
-      .transform((v) => envOptionsMap[v]),
-    APP_CORS_ORIGIN: z.string().optional().default("*"),
-  })
-  .parse(process.env);
-
 // Define config type that allows for partial configuration
 type ModuleConfig<TStorageKeys extends ReadonlyArray<string> | undefined> = {
   db?: "postgres";
@@ -40,7 +28,7 @@ type ModuleConfig<TStorageKeys extends ReadonlyArray<string> | undefined> = {
 // Define base module without optional components
 type BaseModule<TNamespace extends string> = {
   namespace: TNamespace;
-  env: typeof mainEnv;
+  env: typeof coreEnv;
   logger: Logger;
   _router: Hono | null;
   loadRouter<TRouter extends Hono>(
@@ -83,52 +71,58 @@ export async function createModule<
     TConfig["storage"]
   >
 > {
-  // Create base module
-  const baseModule: BaseModule<TNamespace> = {
+  // Add database if configured
+  const db =
+    config?.db === "postgres"
+      ? { db: await createPostgresConnection(namespace) }
+      : {};
+
+  // Add cache if configured
+  const cache =
+    config?.cache === "redis"
+      ? { cache: await createRedisConnection(namespace) }
+      : {};
+
+  // Add storages if configured
+  const storages = await Promise.all(
+    (config?.storage ?? []).map(async (s) => {
+      return {
+        name: s,
+        storage: await createS3Connection(namespace, s),
+      };
+    }),
+  );
+
+  const storage =
+    storages.length > 0
+      ? {
+          storage: storages.reduce(
+            (acc, { name, storage }) => {
+              acc[name] = storage;
+              return acc;
+            },
+            {} as Record<string, ReturnType<typeof s3Cache>>,
+          ),
+        }
+      : {};
+
+  const result = {
     namespace,
-    env: mainEnv,
+    env: coreEnv,
     logger: createLogger(namespace),
     _router: null as unknown as Hono,
     loadRouter<TRouter extends Hono>(router: TRouter) {
       this._router = new Hono().basePath(namespace).route("", router);
       return hc<TRouter>(`http://localhost:3000/${namespace}`);
     },
+
+    ...db,
+    ...cache,
+    ...storage,
   };
 
-  // Add database if configured
-  const moduleWithDb =
-    config?.db === "postgres"
-      ? { ...baseModule, db: await createPostgresConnection(namespace) }
-      : baseModule;
-
-  // Add cache if configured
-  const moduleWithCache =
-    config?.cache === "redis"
-      ? { ...moduleWithDb, cache: await createRedisConnection(namespace) }
-      : moduleWithDb;
-
-  // Add storages if configured
-  const storages = await Promise.all(
-    (config?.storage ?? []).map((s) => createS3Connection(s)),
-  );
-
-  const moduleWithStorage =
-    (config?.storage?.length ?? 0) > 0
-      ? {
-          ...moduleWithCache,
-          storage: config?.storage?.reduce(
-            (acc, s, i) => {
-              // biome-ignore lint/style/noNonNullAssertion: <explanation>
-              acc[s] = storages[i]!;
-              return acc;
-            },
-            {} as Record<string, ReturnType<typeof s3Cache>>,
-          ),
-        }
-      : moduleWithCache;
-
   // @ts-expect-error
-  return moduleWithStorage; // Type assertion needed due to conditional return type
+  return result; // Type assertion needed due to conditional return type
 }
 
 // Updated GnModule type with full option support
@@ -146,21 +140,7 @@ export type GnModule<
 // Helper functions
 
 async function createPostgresConnection(namespace: string) {
-  const upperNamespace = namespace.replaceAll("-", "_").toUpperCase();
-  const dbEnv = z
-    .object({
-      [`DB_${upperNamespace}_HOST`]: z.string(),
-      [`DB_${upperNamespace}_DATABASE`]: z.string(),
-      [`DB_${upperNamespace}_USERNAME`]: z.string(),
-      [`DB_${upperNamespace}_PASSWORD`]: z.string(),
-    })
-    .parse(process.env);
-
-  const host = dbEnv[`DB_${upperNamespace}_HOST`];
-  const database = dbEnv[`DB_${upperNamespace}_DATABASE`];
-  const username = dbEnv[`DB_${upperNamespace}_USERNAME`];
-  const password = dbEnv[`DB_${upperNamespace}_PASSWORD`];
-  const connectionString = `postgresql://${username}:${password}@${host}/${database}`;
+  const dbEnv = getPostgresEnv(namespace);
 
   if (!pgCache) {
     pgCache = (await import("pg")).default;
@@ -170,54 +150,25 @@ async function createPostgresConnection(namespace: string) {
     drizzleCache = (await import("drizzle-orm/node-postgres")).drizzle;
   }
 
-  return drizzleCache(new pgCache.Pool({ connectionString }));
+  return drizzleCache(new pgCache.Pool({ connectionString: dbEnv.url }));
 }
 
 async function createRedisConnection(namespace: string) {
-  const upperNamespace = namespace.replaceAll("-", "_").toUpperCase();
-  const redisEnv = z
-    .object({
-      [`CACHE_${upperNamespace}_HOST`]: z.string(),
-      [`CACHE_${upperNamespace}_PORT`]: z.coerce.number(),
-    })
-    .parse(process.env);
-
-  const host = redisEnv[`CACHE_${upperNamespace}_HOST`] as string;
-  const port = redisEnv[`CACHE_${upperNamespace}_PORT`] as number | undefined;
+  const redisEnv = getRedisEnv(namespace);
 
   if (!redisCache) {
     redisCache = (await import("ioredis")).Redis;
   }
 
-  return new redisCache({ host, port });
+  return new redisCache(redisEnv);
 }
 
-async function createS3Connection(storageName: string) {
-  const s3Env = z
-    .object({
-      [`S3_${storageName}_REGION`]: z.string(),
-      [`S3_${storageName}_BUCKET`]: z.string(),
-      [`S3_${storageName}_ENDPOINT`]: z.string().optional(),
-      [`S3_${storageName}_ACCESS_KEY`]: z.string(),
-      [`S3_${storageName}_SECRET_KEY`]: z.string(),
-    })
-    .parse(process.env);
-
-  const region = s3Env[`S3_${storageName}_REGION`] as string;
-  const bucket = s3Env[`S3_${storageName}_BUCKET`] as string;
-  const endpoint = s3Env[`S3_${storageName}_ENDPOINT`];
-  const accessKeyId = s3Env[`S3_${storageName}_ACCESS_KEY`] as string;
-  const secretAccessKey = s3Env[`S3_${storageName}_SECRET_KEY`] as string;
+async function createS3Connection(namespace: string, storageName: string) {
+  const s3Env = getS3Env(namespace, storageName);
 
   if (!s3Cache) {
     s3Cache = (await import("@core/helpers/s3.js")).createS3Client;
   }
 
-  return s3Cache({
-    region,
-    bucket,
-    endpoint,
-    accessKeyId,
-    secretAccessKey,
-  });
+  return s3Cache(s3Env);
 }

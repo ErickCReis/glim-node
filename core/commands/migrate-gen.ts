@@ -1,8 +1,8 @@
+import { spawn } from "node:child_process";
+import { readdir } from "node:fs/promises";
 import { parse } from "@bomb.sh/args";
 import { cancel, intro, isCancel, log, outro, select } from "@clack/prompts";
 import { createTempDrizzleConfig } from "@core/commands/utils.js";
-import { spawn } from "node:child_process";
-import { readdir } from "node:fs/promises";
 
 intro("Migrate Gen");
 

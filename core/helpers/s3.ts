@@ -29,9 +29,6 @@ export function createS3Client(config: {
     });
 
     const response = await s3Client.send(command);
-    // Handle the response.  For example, stream the body:
-    // const bodyContents = await streamToString(response.Body);
-    console.log(response);
 
     return response.Buckets;
   }

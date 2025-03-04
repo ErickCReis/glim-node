@@ -1,4 +1,4 @@
-import { createLogger } from "@core/utils/logger.js";
+import { createLogger } from "@core/helpers/logger.js";
 import { getConnInfo } from "@hono/node-server/conninfo";
 import { createMiddleware } from "hono/factory";
 

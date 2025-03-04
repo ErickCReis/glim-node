@@ -1,10 +1,11 @@
 import "dotenv/config";
 
-import { type GnModule, mainEnv } from "@core/gn-module.js";
+import type { GnModule } from "@core/gn-module.js";
+import { coreEnv } from "@core/helpers/env.js";
+import { createLogger } from "@core/helpers/logger.js";
 import type { S3 } from "@core/helpers/s3.js";
 import { corsMiddleware } from "@core/middleware/cors-middleware.js";
 import { loggerMiddleware } from "@core/middleware/logger-middleware.js";
-import { createLogger } from "@core/utils/logger.js";
 import { serve } from "@hono/node-server";
 import { getConnInfo } from "@hono/node-server/conninfo";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
@@ -61,7 +62,7 @@ export function start(modules: Array<GnModule>) {
       }
 
       for (const [name, storage] of Object.entries(storages)) {
-        info[`storage.${name}`] = await check(() =>
+        info[`storage.${m.namespace}.${name}`] = await check(() =>
           storage
             .listBuckets()
             .then(() => true)
@@ -128,7 +129,7 @@ export function start(modules: Array<GnModule>) {
 
     void logger("ERROR", data);
 
-    if (mainEnv.APP_ENV !== "DEV") {
+    if (coreEnv.APP_ENV !== "DEV") {
       // @ts-expect-error
       data.extras = undefined;
     }
@@ -136,7 +137,7 @@ export function start(modules: Array<GnModule>) {
     return c.json(data, 500);
   });
 
-  if (mainEnv.APP_ENV === "DEV") {
+  if (coreEnv.APP_ENV === "DEV") {
     showRoutes(app, { verbose: true });
   }
 

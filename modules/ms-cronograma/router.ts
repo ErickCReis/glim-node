@@ -1,12 +1,12 @@
 import { authMiddleware } from "@core/middleware/auth-middleware.js";
 import { sValidator } from "@hono/standard-validator";
-import { Hono } from "hono";
-import { z } from "zod";
 import {
   createCronogramaUseCase,
   deleteCronogramaUseCase,
   getCronogramasUseCase,
-} from "./use-cases/cronogramas.js";
+} from "@ms-cronograma/use-cases/cronogramas.js";
+import { Hono } from "hono";
+import { z } from "zod";
 
 export const router = new Hono()
   .use(authMiddleware)
@@ -25,7 +25,7 @@ export const router = new Hono()
       }
 
       return c.json(cronograma, 201);
-    }
+    },
   )
   .delete(
     "/cronogramas/:id",
@@ -34,5 +34,5 @@ export const router = new Hono()
       const { id } = c.req.valid("param");
       await deleteCronogramaUseCase(id);
       return c.body(null, 204);
-    }
+    },
   );
