@@ -19,7 +19,7 @@ let s3Cache: typeof import("@core/helpers/s3.js").createS3Client;
 type EmptyObject = {};
 
 // Define config type that allows for partial configuration
-type ModuleConfig<TStorageKeys extends ReadonlyArray<string> | undefined> = {
+type ModuleConfig<TStorageKeys extends Array<string> | undefined> = {
   db?: "postgres";
   cache?: "redis";
   storage?: TStorageKeys;
@@ -41,7 +41,7 @@ type ModuleWithOptions<
   TNamespace extends string,
   HasDB extends boolean = false,
   HasCache extends boolean = false,
-  StorageKeys extends ReadonlyArray<string> | undefined = undefined,
+  StorageKeys extends Array<string> | undefined = undefined,
 > = BaseModule<TNamespace> &
   (HasDB extends true ? { db: ReturnType<typeof drizzleCache> } : EmptyObject) &
   (HasCache extends true ? { cache: typeof redisCache } : EmptyObject) &
@@ -49,17 +49,17 @@ type ModuleWithOptions<
     ? EmptyObject
     : {
         storage: {
-          [K in StorageKeys extends ReadonlyArray<infer U>
-            ? U
-            : never]: ReturnType<typeof s3Cache>;
+          [K in StorageKeys extends Array<infer U> ? U : never]: ReturnType<
+            typeof s3Cache
+          >;
         };
       });
 
 // Implementation with proper type handling
 export async function createModule<
-  TNamespace extends string,
-  StorageKeys extends ReadonlyArray<string> | undefined,
-  TConfig extends ModuleConfig<StorageKeys>,
+  const TNamespace extends string,
+  const StorageKeys extends Array<string> | undefined,
+  const TConfig extends ModuleConfig<StorageKeys>,
 >(
   namespace: TNamespace,
   config?: TConfig,
@@ -128,7 +128,7 @@ export async function createModule<
 // Updated GnModule type with full option support
 export type GnModule<
   TNamespace extends string = string,
-  StorageKeys extends ReadonlyArray<string> | undefined = undefined,
+  StorageKeys extends Array<string> | undefined = undefined,
   TConfig extends ModuleConfig<StorageKeys> = ModuleConfig<StorageKeys>,
 > = ModuleWithOptions<
   TNamespace,

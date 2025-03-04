@@ -5,7 +5,7 @@ export const mscronograma = await createModule("ms-cronograma", {
   db: "postgres",
   cache: "redis",
   storage: ["construcao"],
-} as const);
+});
 
 export const client = mscronograma.loadRouter(router);
 
