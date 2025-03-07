@@ -1,0 +1,31 @@
+services:
+  app:
+    image: node:22-alpine
+    working_dir: /usr/src/app
+    depends_on:
+      - db
+      - cache
+      - s3
+    ports:
+      - "3000:3000"
+    volumes:
+      - .:/usr/src/app
+      - /usr/src/app/node_modules
+    command: sh -c "npm i -g pnpm && pnpm install && pnpm dev"
+
+  db:
+    image: postgres:15
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_PASSWORD=${DB_MS_CRONOGRAMA_PASSWORD}
+  
+  cache:
+    image: redis:7
+    ports:
+      - "6379:6379"
+
+  s3:
+    image: localstack/localstack:s3-latest
+    ports:
+      - "4566:4566"
