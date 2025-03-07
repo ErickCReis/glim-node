@@ -7,7 +7,6 @@ import {
 import { type Logger, createLogger } from "@core/helpers/logger.js";
 import { Hono } from "hono";
 import { hc } from "hono/client";
-import { z } from "zod";
 
 // Import cache
 let pgCache: typeof import("pg");
@@ -25,11 +24,17 @@ type ModuleConfig<TStorageKeys extends Array<string> | undefined> = {
   storage?: TStorageKeys;
 };
 
+export type ImAlive = {
+  status: "alive" | "dead";
+  latency: number;
+};
+
 // Define base module without optional components
 type BaseModule<TNamespace extends string> = {
   namespace: TNamespace;
   env: typeof coreEnv;
   logger: Logger;
+  imAlive: () => Promise<Record<string, ImAlive>>;
   _router: Hono | null;
   loadRouter<TRouter extends Hono>(
     router: TRouter,
@@ -106,10 +111,43 @@ export async function createModule<
         }
       : {};
 
+  async function imAlive() {
+    const results = await Promise.all([
+      db.db &&
+        check(`db.${namespace}`, () =>
+          db.db
+            .execute("SELECT 1")
+            .then((r) => r.rowCount === 1)
+            .catch(() => false),
+        ),
+
+      cache.cache &&
+        check(`cache.${namespace}`, () =>
+          cache.cache.ping().then((r) => r === "PONG"),
+        ),
+
+      ...(storage.storage
+        ? Object.entries(storage.storage).map(([key, value]) =>
+            check(`storage.${namespace}.${key}`, () =>
+              value
+                .listBuckets()
+                .then(() => true)
+                .catch(() => false),
+            ),
+          )
+        : []),
+    ]);
+
+    const res = {};
+    for (const r of results) Object.assign(res, r);
+    return res;
+  }
+
   const result = {
     namespace,
     env: coreEnv,
     logger: createLogger(namespace),
+    imAlive,
     _router: null as unknown as Hono,
     loadRouter<TRouter extends Hono>(router: TRouter) {
       this._router = new Hono().basePath(namespace).route("", router);
@@ -138,7 +176,6 @@ export type GnModule<
 >;
 
 // Helper functions
-
 async function createPostgresConnection(namespace: string) {
   const dbEnv = getPostgresEnv(namespace);
 
@@ -171,4 +208,17 @@ async function createS3Connection(namespace: string, storageName: string) {
   }
 
   return s3Cache(s3Env);
+}
+
+async function check(key: string, fn: () => Promise<boolean> | boolean) {
+  const startTime = process.hrtime();
+  const success = await fn();
+  const elapsedTime = process.hrtime(startTime);
+  const elapsedMS = (elapsedTime[0] * 1e9 + elapsedTime[1]) / 1e6;
+  return {
+    [key]: {
+      status: success ? ("alive" as const) : ("dead" as const),
+      latency: elapsedMS,
+    },
+  };
 }
