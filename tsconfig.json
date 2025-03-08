@@ -32,7 +32,7 @@
 
     "baseUrl": ".",
     "paths": {
-      "@core/*": ["./core/*"],
+      "@core/*": ["./src/*"],
       "@*": ["./modules/*"]
     }
   }
