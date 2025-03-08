@@ -28,5 +28,11 @@
     "drizzle-kit": "^0.30.4",
     "tsx": "^4.19.3",
     "typescript": "^5.7.3"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@biomejs/biome",
+      "esbuild"
+    ]
   }
 }
