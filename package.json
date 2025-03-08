@@ -1,9 +1,7 @@
 {
   "name": "glim-node",
   "type": "module",
-  "files": [
-    "dist"
-  ],
+  "files": ["dist"],
   "bin": {
     "gn": "./dist/bin/index.js"
   },
@@ -17,8 +15,7 @@
   "scripts": {
     "build": "bun build.ts",
     "check": "biome check --write .",
-    "dev": "bun --watch ./modules/index.ts",
-    "gn": "bun ./src/bin/index.js"
+    "dev": "bun ./src/bin/index.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.758.0",

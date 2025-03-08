@@ -3,11 +3,9 @@ import "dotenv/config";
 import { spawn } from "node:child_process";
 import { readdir } from "node:fs/promises";
 import { parse } from "@bomb.sh/args";
-import { cancel, intro, isCancel, log, outro, select } from "@clack/prompts";
+import { cancel, isCancel, log, select } from "@clack/prompts";
 import { createTempDrizzleConfig } from "@core/commands/utils.js";
 import { getPostgresEnv } from "@core/helpers/env.js";
-
-intro("Migrate Up");
 
 log.step("Verificando módulos");
 const modules = (await readdir("./modules", { withFileTypes: true }))
@@ -66,5 +64,3 @@ await new Promise<void>((resolve, reject) => {
   log.error("Não foi possível aplicar as migrations");
   process.exit(1);
 });
-
-outro("Migrate Up");

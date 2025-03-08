@@ -11,6 +11,7 @@ services:
     volumes:
       - ../..:/usr/src/app
       - /usr/src/app/examples/cronograma-api/node_modules
+      - /usr/src/app/.pnpm-store
     command: sh -c "npm i -g pnpm && pnpm i && pnpm dev"
 
   db:
