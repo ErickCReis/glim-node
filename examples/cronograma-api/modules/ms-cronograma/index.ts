@@ -1,5 +1,5 @@
-import { createModule } from "@core/index.js";
-import { router } from "@ms-cronograma/router.js";
+import { router } from "@ms-cronograma/router";
+import { createModule } from "glim-node";
 
 export const mscronograma = await createModule("ms-cronograma", {
   db: "postgres",

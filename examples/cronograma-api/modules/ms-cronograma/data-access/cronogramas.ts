@@ -1,5 +1,5 @@
-import { models } from "@ms-cronograma/db/index.js";
-import { mscronograma } from "@ms-cronograma/index.js";
+import { mscronograma } from "@ms-cronograma";
+import { models } from "@ms-cronograma/db";
 import { eq } from "drizzle-orm";
 
 export async function getCronogramas() {

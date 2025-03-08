@@ -1,10 +1,10 @@
-import { authMiddleware } from "@core/middleware/auth-middleware.js";
 import { sValidator } from "@hono/standard-validator";
 import {
   createCronogramaUseCase,
   deleteCronogramaUseCase,
   getCronogramasUseCase,
-} from "@ms-cronograma/use-cases/cronogramas.js";
+} from "@ms-cronograma/use-cases/cronogramas";
+import { authMiddleware } from "glim-node";
 import { Hono } from "hono";
 import { z } from "zod";
 

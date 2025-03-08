@@ -2,7 +2,7 @@ import {
   createCronograma,
   deleteCronograma,
   getCronogramas,
-} from "@ms-cronograma/data-access/cronogramas.js";
+} from "@ms-cronograma/data-access/cronogramas";
 
 export async function getCronogramasUseCase() {
   return await getCronogramas();

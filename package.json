@@ -1,12 +1,17 @@
 {
   "name": "glim-node",
   "type": "module",
-  "bin": "./dist/src/bin/index.js",
-  "main": "./dist/src/index.js",
+  "files": [
+    "dist"
+  ],
+  "bin": {
+    "gn": "./dist/bin/index.js"
+  },
+  "main": "./dist/index.js",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "default": "./dist/src/index.js"
+      "default": "./dist/index.js"
     }
   },
   "scripts": {

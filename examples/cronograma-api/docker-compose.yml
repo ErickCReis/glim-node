@@ -1,7 +1,7 @@
 services:
   app:
-    image: oven/bun:1
-    working_dir: /usr/src/app
+    image: node:22-alpine
+    working_dir: /usr/src/app/examples/cronograma-api
     depends_on:
       - db
       - cache
@@ -9,9 +9,9 @@ services:
     ports:
       - "3000:3000"
     volumes:
-      - .:/usr/src/app
-      - /usr/src/app/node_modules
-    command: sh -c "bun i && bun dev"
+      - ../..:/usr/src/app
+      - /usr/src/app/examples/cronograma-api/node_modules
+    command: sh -c "npm i -g pnpm && pnpm i && pnpm dev"
 
   db:
     image: postgres:15

@@ -1,0 +1,22 @@
+{
+  "name": "cronograma-api",
+  "type": "module",
+  "scripts": {
+    "check": "biome check --write .",
+    "dev": "node --import @swc-node/register/esm-register --watch --env-file=.env ./modules/index.ts",
+    "gn": "gn"
+  },
+  "dependencies": {
+    "@hono/standard-validator": "^0.1.2",
+    "drizzle-orm": "^0.39.3",
+    "glim-node": "../..",
+    "hono": "^4.7.2",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "1.9.4",
+    "@swc-node/register": "^1.10.9",
+    "@types/node": "^20.11.17",
+    "typescript": "^5.7.3"
+  }
+}
