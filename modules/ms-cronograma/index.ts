@@ -1,4 +1,4 @@
-import { createModule } from "@core/gn-module.js";
+import { createModule } from "@core/index.js";
 import { router } from "@ms-cronograma/router.js";
 
 export const mscronograma = await createModule("ms-cronograma", {
