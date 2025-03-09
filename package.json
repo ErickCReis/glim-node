@@ -2,7 +2,7 @@
   "name": "glim-node",
   "version": "0.0.0",
   "type": "module",
-  "files": ["dist", "package.json"],
+  "files": ["dist"],
   "bin": {
     "gn": "./dist/bin.js"
   },

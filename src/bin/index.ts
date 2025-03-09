@@ -2,7 +2,15 @@ import { existsSync } from "node:fs";
 import { readdir } from "node:fs/promises";
 import path from "node:path";
 import { parse } from "@bomb.sh/args";
-import { cancel, intro, isCancel, log, outro, select } from "@clack/prompts";
+import {
+  cancel,
+  intro,
+  isCancel,
+  log,
+  outro,
+  select,
+  text,
+} from "@clack/prompts";
 
 async function getSelectedModule(moduleArg?: string, folderPath = "") {
   log.step("Verificando módulos");
@@ -50,16 +58,17 @@ async function getSelectedModule(moduleArg?: string, folderPath = "") {
 async function main() {
   intro("Glim Node");
 
-  const args = parse(process.argv.slice(2), { string: ["module"] });
+  const args = parse(process.argv.slice(2), { string: ["module", "name"] });
   const [directCommand] = args._;
 
   let command = directCommand;
   if (!command) {
     const selectedCommand = await select({
-      message: "Escolha um comando de migração:",
+      message: "Escolha um comando:",
       options: [
-        { value: "migrate:gen", label: "Gerar Migração" },
-        { value: "migrate:up", label: "Executar Migrações" },
+        { value: "create", label: "Criar um novo projeto" },
+        { value: "migrate:gen", label: "Gerar migrations" },
+        { value: "migrate:up", label: "Executar migrations" },
       ],
     });
 
@@ -73,6 +82,32 @@ async function main() {
 
   try {
     switch (command) {
+      case "create": {
+        let projectName = args.name;
+
+        if (!projectName) {
+          const nameInput = await text({
+            message: "Qual é o nome do projeto?",
+            validate: (value) => {
+              if (!value) return "O nome do projeto é obrigatório";
+              if (!/^[a-z0-9-]+$/.test(value)) {
+                return "O nome do projeto deve conter apenas letras minúsculas, números e hífens";
+              }
+            },
+          });
+
+          if (isCancel(nameInput)) {
+            cancel("Operação cancelada.");
+            process.exit(0);
+          }
+
+          projectName = nameInput;
+        }
+
+        const { createProject } = await import("./commands/create");
+        await createProject(projectName);
+        break;
+      }
       case "migrate:gen": {
         const moduleForGen = await getSelectedModule(args.module, "db/models");
         const { generateMigration } = await import("./commands/migrate-gen");
@@ -88,8 +123,9 @@ async function main() {
         await runMigrations(moduleForUp);
         break;
       }
+
       default:
-        log.error(`Comando desconhecido: ${command}`);
+        log.error(`Comando desconhecido: "${command}"`);
         process.exit(1);
     }
     outro(`Comando "${command}" executado com sucesso!`);
