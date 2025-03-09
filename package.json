@@ -2,10 +2,7 @@
   "name": "glim-node",
   "version": "0.0.0",
   "type": "module",
-  "files": [
-    "dist",
-    "package.json"
-  ],
+  "files": ["dist", "package.json"],
   "bin": {
     "gn": "./dist/bin.js"
   },
@@ -30,7 +27,7 @@
   "scripts": {
     "build": "tsup",
     "check": "biome check --write . && tsc --noEmit",
-    "dev": "tsx --watch ./src/bin/index.ts"
+    "dev": "tsup --watch"
   },
   "dependencies": {
     "@hono/node-server": "^1.13.8",
@@ -75,14 +72,10 @@
     "ioredis": "^5.5.0",
     "pg": "^8.13.3",
     "tsup": "^8.4.0",
-    "tsx": "^4.19.3",
     "typescript": "^5.8.2",
     "zod": "^3.24.2"
   },
   "pnpm": {
-    "onlyBuiltDependencies": [
-      "@biomejs/biome",
-      "esbuild"
-    ]
+    "onlyBuiltDependencies": ["@biomejs/biome", "esbuild"]
   }
 }
