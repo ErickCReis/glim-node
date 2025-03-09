@@ -5,14 +5,11 @@ import {
   getS3Env,
 } from "@core/helpers/env.js";
 import { type Logger, createLogger } from "@core/helpers/logger.js";
+import type { createS3Client } from "@core/helpers/s3.js";
+import type { drizzle } from "drizzle-orm/node-postgres";
 import { Hono } from "hono";
 import { hc } from "hono/client";
-
-// Import cache
-let pgCache: typeof import("pg");
-let drizzleCache: typeof import("drizzle-orm/node-postgres").drizzle;
-let redisCache: typeof import("ioredis").Redis;
-let s3Cache: typeof import("@core/helpers/s3.js").createS3Client;
+import type { Redis } from "ioredis";
 
 // biome-ignore lint/complexity/noBannedTypes:
 type EmptyObject = {};
@@ -48,14 +45,14 @@ type ModuleWithOptions<
   HasCache extends boolean = false,
   StorageKeys extends Array<string> | undefined = undefined,
 > = BaseModule<TNamespace> &
-  (HasDB extends true ? { db: ReturnType<typeof drizzleCache> } : EmptyObject) &
-  (HasCache extends true ? { cache: typeof redisCache } : EmptyObject) &
+  (HasDB extends true ? { db: ReturnType<typeof drizzle> } : EmptyObject) &
+  (HasCache extends true ? { cache: Redis } : EmptyObject) &
   (StorageKeys extends undefined
     ? EmptyObject
     : {
         storage: {
           [K in StorageKeys extends Array<infer U> ? U : never]: ReturnType<
-            typeof s3Cache
+            typeof createS3Client
           >;
         };
       });
@@ -106,7 +103,7 @@ export async function createModule<
               acc[name] = storage;
               return acc;
             },
-            {} as Record<string, ReturnType<typeof s3Cache>>,
+            {} as Record<string, ReturnType<typeof createS3Client>>,
           ),
         }
       : {};
@@ -178,36 +175,21 @@ export type GnModule<
 // Helper functions
 async function createPostgresConnection(namespace: string) {
   const dbEnv = getPostgresEnv(namespace);
-
-  if (!pgCache) {
-    pgCache = (await import("pg")).default;
-  }
-
-  if (!drizzleCache) {
-    drizzleCache = (await import("drizzle-orm/node-postgres")).drizzle;
-  }
-
-  return drizzleCache(new pgCache.Pool({ connectionString: dbEnv.url }));
+  const { default: pg } = await import("pg");
+  const { drizzle } = await import("drizzle-orm/node-postgres");
+  return drizzle(new pg.Pool({ connectionString: dbEnv.url }));
 }
 
 async function createRedisConnection(namespace: string) {
   const redisEnv = getRedisEnv(namespace);
-
-  if (!redisCache) {
-    redisCache = (await import("ioredis")).Redis;
-  }
-
-  return new redisCache(redisEnv);
+  const { Redis } = await import("ioredis");
+  return new Redis(redisEnv);
 }
 
 async function createS3Connection(namespace: string, storageName: string) {
   const s3Env = getS3Env(namespace, storageName);
-
-  if (!s3Cache) {
-    s3Cache = (await import("@core/helpers/s3.js")).createS3Client;
-  }
-
-  return s3Cache(s3Env);
+  const { createS3Client } = await import("@core/helpers/s3.js");
+  return createS3Client(s3Env);
 }
 
 async function check(key: string, fn: () => Promise<boolean> | boolean) {
