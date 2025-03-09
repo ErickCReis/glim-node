@@ -1,9 +1,10 @@
+import { existsSync } from "node:fs";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { log } from "@clack/prompts";
 
 export async function createProject(projectName: string) {
-  log.step("Creating new project");
+  log.step("Criando novo projeto");
 
   const templatePath = path.join(
     import.meta.dirname,
@@ -11,6 +12,10 @@ export async function createProject(projectName: string) {
     "cronograma-api",
   );
   const targetPath = path.join(process.cwd(), projectName);
+
+  if (existsSync(targetPath)) {
+    throw new Error(`Diretório "${projectName}" já existe`);
+  }
 
   try {
     // Copy template files
@@ -32,13 +37,12 @@ export async function createProject(projectName: string) {
       path.join(targetPath, ".env"),
     );
 
-    log.info("Project created successfully!");
-    log.info("Next steps:");
-    log.step(`1. cd ${projectName}`);
-    log.step("2. pnpm install");
-    log.step("3. docker compose up");
+    log.info("Projeto criado com sucesso!");
+    log.info(`Próximos passos:
+  1. cd ${projectName}
+  2. docker compose up`);
   } catch (error) {
-    throw new Error(`Failed to scaffold project: ${(error as Error).message}`);
+    throw new Error(`Falha ao criar projeto: ${(error as Error).message}`);
   }
 }
 

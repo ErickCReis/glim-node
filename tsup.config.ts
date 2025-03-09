@@ -18,7 +18,7 @@ async function copyDirectory(
     const sourcePath = path.join(source, entry.name);
     const targetPath = path.join(target, entry.name);
 
-    if (exclude.includes(entry.name)) {
+    if (exclude.includes(entry.name) || entry.name.endsWith(".log")) {
       continue;
     }
 
