@@ -4,7 +4,7 @@ import {
   deleteCronogramaUseCase,
   getCronogramasUseCase,
 } from "@ms-cronograma/use-cases/cronogramas";
-import { authMiddleware } from "glim-node";
+import { authMiddleware } from "glim-node/middleware";
 import { Hono } from "hono";
 import { z } from "zod";
 

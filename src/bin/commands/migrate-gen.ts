@@ -2,7 +2,7 @@ import { spawn } from "node:child_process";
 import { readdir } from "node:fs/promises";
 import { parse } from "@bomb.sh/args";
 import { cancel, isCancel, log, select } from "@clack/prompts";
-import { createTempDrizzleConfig } from "@core/commands/utils.js";
+import { createTempDrizzleConfig } from "@core/bin/utils";
 
 log.step("Verificando módulos");
 const modules = (await readdir("./modules", { withFileTypes: true }))

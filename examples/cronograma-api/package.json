@@ -2,22 +2,33 @@
   "name": "cronograma-api",
   "type": "module",
   "scripts": {
-    "check": "biome check --write .",
-    "dev": "node --import @swc-node/register/esm-register --watch --env-file=.env ./modules/index.ts",
-    "gn": "gn"
+    "build": "tsc",
+    "check": "biome check --write . && tsc --noEmit",
+    "dev": "tsx --watch --env-file=.env ./modules/index.ts"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.758.0",
     "@hono/standard-validator": "^0.1.2",
-    "drizzle-orm": "^0.39.3",
+    "dotenv": "^16.4.7",
+    "drizzle-orm": "^0.40.0",
     "glim-node": "../..",
-    "hono": "^4.7.2",
+    "hono": "^4.7.4",
+    "ioredis": "^5.6.0",
+    "pg": "^8.13.3",
     "zod": "^3.24.2"
   },
   "devDependencies": {
     "@biomejs/biome": "1.9.4",
-    "@swc-node/register": "^1.10.9",
-    "@types/node": "^20.11.17",
+    "@types/node": "^22.13.10",
+    "@types/pg": "^8.11.11",
     "drizzle-kit": "^0.30.5",
+    "tsx": "^4.19.3",
     "typescript": "^5.7.3"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@biomejs/biome",
+      "esbuild"
+    ]
   }
 }

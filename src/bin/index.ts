@@ -1,5 +1,3 @@
-#!/usr/bin/env node
-
 import { intro, isCancel, log, outro, select } from "@clack/prompts";
 
 intro("Glim Node (GN)");
@@ -20,10 +18,10 @@ if (isCancel(command)) {
 try {
   switch (command) {
     case "migrate:gen":
-      await import("../commands/migrate-gen");
+      await import("./commands/migrate-gen");
       break;
     case "migrate:up":
-      await import("../commands/migrate-up");
+      await import("./commands/migrate-up");
       break;
   }
   outro(`Command "${command}" executed successfully!`);
