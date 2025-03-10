@@ -180,7 +180,9 @@ export async function createModule<
     imAlive,
     _router: null as unknown as Hono,
     loadRouter<TRouter extends Hono>(router: TRouter) {
-      this._router = new Hono().basePath(namespace).route("", router);
+      this._router = new Hono({ strict: false })
+        .basePath(namespace)
+        .route("/", router);
       return hc<TRouter>(`http://localhost:3000/${namespace}`);
     },
 

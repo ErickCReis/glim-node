@@ -13,9 +13,9 @@ import { HTTPException } from "hono/http-exception";
 import { requestId } from "hono/request-id";
 import { validator } from "hono/validator";
 
-const mainLogger = createLogger();
-
 export function start(modules: Array<GnModule>) {
+  const mainLogger = createLogger();
+
   const app = new Hono({ strict: false });
 
   app.use("*", requestId({ headerName: "trace-id" }));
@@ -23,7 +23,7 @@ export function start(modules: Array<GnModule>) {
 
   app.get(
     "/im-alive/:resource?",
-    loggerMiddleware(mainLogger),
+    loggerMiddleware({ logger: mainLogger }),
     validator("param", (value, c) => {
       const validResources = ["db", "cache", "storage"] as const;
       const resource = value.resource as
@@ -69,40 +69,43 @@ export function start(modules: Array<GnModule>) {
       process.exit(1);
     }
 
-    app.use(`/${module.namespace}/*`, loggerMiddleware(module.logger));
+    app.use(`/${module.namespace}/*`, loggerMiddleware(module));
     app.route("/", module._router);
   }
 
   app.onError((err, c) => {
     const path = new URL(c.req.url).pathname;
-    const logger =
+    const logger = (
       modules.find((m) => path.startsWith(`/${m.namespace}/`))?.logger ??
-      mainLogger;
+      mainLogger
+    ).child({ "trace-id": c.var.requestId });
 
-    const traceId = c.get("requestId");
+    logger.error(err, err.message);
 
     if (err instanceof HTTPException) {
-      const data = {
-        "trace-id": traceId,
-        status: err.status,
-        error: err.message,
-      };
-      void logger("ERROR", data);
-      return c.json(data, err.status);
+      return c.json(
+        {
+          status: err.status,
+          error: err.message,
+        },
+        err.status,
+      );
     }
 
     const stack = err.stack?.split("\n").map((l) => l.trim());
-
-    const info = getConnInfo(c);
-    const host = c.req.header("host") ?? "";
-    const remoteAddress = info.remote.address ?? "";
-    const remotePort = info.remote.port ?? 0;
-
     const data = {
-      "trace-id": traceId,
       status: 500,
       error: stack?.shift(),
-      extras: {
+      extras: undefined as unknown as Record<string, unknown>,
+    };
+
+    if (coreEnv.APP_ENV === "DEV") {
+      const info = getConnInfo(c);
+      const host = c.req.header("host") ?? "";
+      const remoteAddress = info.remote.address ?? "";
+      const remotePort = info.remote.port ?? 0;
+
+      data.extras = {
         status: 500,
 
         method: c.req.method,
@@ -112,14 +115,7 @@ export function start(modules: Array<GnModule>) {
         remotePort,
 
         "stack-trace": stack,
-      },
-    };
-
-    void logger("ERROR", data);
-
-    if (coreEnv.APP_ENV !== "DEV") {
-      // @ts-expect-error
-      data.extras = undefined;
+      };
     }
 
     return c.json(data, 500);

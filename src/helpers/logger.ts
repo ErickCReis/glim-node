@@ -1,22 +1,29 @@
-import { appendFile } from "node:fs/promises";
 import { coreEnv } from "@core/helpers/env.js";
-import { toISOStringWithTimezone } from "@core/utils/date.js";
+import { toISOStringWithTimezone } from "@core/utils/date";
+import pino from "pino";
 
-type Severity = "TRACE" | "DEBUG" | "INFO" | "WARNING" | "ERROR" | "CRITICAL";
-
-export type Logger = (severity: Severity, extra: object) => Promise<void>;
+export type Logger = pino.Logger;
 
 export function createLogger(namespace = "main"): Logger {
-  return async function logger(severity, extra) {
-    await appendFile(
-      `./logs/${namespace}.log`,
-      `${JSON.stringify({
-        severity,
-        timestamp: toISOStringWithTimezone(new Date()),
+  return pino({
+    level: coreEnv.APP_ENV === "DEV" ? "debug" : "info",
+    timestamp: () => `,"timestamp":"${toISOStringWithTimezone(new Date())}"`,
+    formatters: {
+      bindings: () => ({
         appname: `${coreEnv.APP_NAME}/${namespace}`,
         env: coreEnv.APP_ENV,
-        ...extra,
-      })}\n`,
-    );
-  };
+      }),
+      level: (label, sererity) => ({
+        severity: label.toUpperCase(),
+        level: sererity,
+      }),
+    },
+    messageKey: "message",
+    nestedKey: "extras",
+
+    transport: {
+      target: "pino/file",
+      options: { destination: `./logs/${namespace}.log` },
+    },
+  });
 }
