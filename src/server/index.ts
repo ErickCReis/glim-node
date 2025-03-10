@@ -11,6 +11,7 @@ import { Hono } from "hono";
 import { showRoutes } from "hono/dev";
 import { HTTPException } from "hono/http-exception";
 import { requestId } from "hono/request-id";
+import { validator } from "hono/validator";
 
 const mainLogger = createLogger();
 
@@ -20,15 +21,47 @@ export function start(modules: Array<GnModule>) {
   app.use("*", requestId({ headerName: "trace-id" }));
   app.use("*", corsMiddleware);
 
-  app.get("/im-alive", loggerMiddleware(mainLogger), async (c) => {
-    const info = await Promise.all(modules.map((m) => m.imAlive()));
+  app.get(
+    "/im-alive/:resource?",
+    loggerMiddleware(mainLogger),
+    validator("param", (value, c) => {
+      const validResources = ["db", "cache", "storage"] as const;
+      const resource = value.resource as
+        | (typeof validResources)[number]
+        | undefined;
+      if (resource && !validResources.includes(resource)) {
+        return c.notFound();
+      }
 
-    const res: Record<string, ImAlive> = {};
-    for (const i of info) Object.assign(res, i);
+      return { resource };
+    }),
+    validator("query", (value) => {
+      const force = value.force !== undefined;
+      return { force };
+    }),
+    async (c) => {
+      const info = await Promise.all(
+        modules.map((m) =>
+          m.imAlive(
+            c.req.valid("param").resource ?? "all",
+            c.req.valid("query").force,
+          ),
+        ),
+      );
 
-    const someIsDead = Object.values(res).some((i) => i.status === "dead");
-    return c.json(res, someIsDead ? 500 : 200);
-  });
+      const res: Record<string, ImAlive> = {};
+      for (const i of info) {
+        if (Array.isArray(i)) {
+          return c.json(i, 200);
+        }
+
+        Object.assign(res, i);
+      }
+
+      const someIsDead = Object.values(res).some((i) => i.status === "dead");
+      return c.json(res, someIsDead ? 500 : 200);
+    },
+  );
 
   for (const module of modules) {
     if (!module._router) {

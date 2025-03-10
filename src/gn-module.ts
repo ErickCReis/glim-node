@@ -1,3 +1,5 @@
+import fs from "node:fs";
+import { join } from "node:path";
 import {
   coreEnv,
   getPostgresEnv,
@@ -31,7 +33,10 @@ type BaseModule<TNamespace extends string> = {
   namespace: TNamespace;
   env: typeof coreEnv;
   logger: Logger;
-  imAlive: () => Promise<Record<string, ImAlive>>;
+  imAlive: (
+    resource: "all" | "db" | "cache" | "storage",
+    force: boolean,
+  ) => Promise<Record<string, ImAlive> | ["OK"]>;
   _router: Hono | null;
   loadRouter<TRouter extends Hono>(
     router: TRouter,
@@ -108,35 +113,63 @@ export async function createModule<
         }
       : {};
 
-  async function imAlive() {
-    const results = await Promise.all([
-      db.db &&
+  async function imAlive(
+    resource: "all" | "db" | "cache" | "storage" = "all",
+    force = false,
+  ) {
+    const logFileName = `im-alive${resource !== "all" ? `.${resource}` : ""}.log`;
+    const logPath = join(process.cwd(), logFileName);
+
+    // Check if log exists and return early if not forced
+    if (!force && fs.existsSync(logPath)) {
+      fs.appendFileSync(logPath, `${Date.now()}\n`);
+      return ["OK"] as const;
+    }
+
+    const checksPromises = [];
+
+    if ((resource === "all" || resource === "db") && db.db) {
+      checksPromises.push(
         check(`db.${namespace}`, () =>
           db.db
             .execute("SELECT 1")
             .then((r) => r.rowCount === 1)
             .catch(() => false),
         ),
+      );
+    }
 
-      cache.cache &&
+    if ((resource === "all" || resource === "cache") && cache.cache) {
+      checksPromises.push(
         check(`cache.${namespace}`, () =>
           cache.cache.ping().then((r) => r === "PONG"),
         ),
+      );
+    }
 
-      ...(storage.storage
-        ? Object.entries(storage.storage).map(([key, value]) =>
-            check(`storage.${namespace}.${key}`, () =>
-              value
-                .listBuckets()
-                .then(() => true)
-                .catch(() => false),
-            ),
-          )
-        : []),
-    ]);
+    if ((resource === "all" || resource === "storage") && storage.storage) {
+      for (const [key, value] of Object.entries(storage.storage)) {
+        checksPromises.push(
+          check(`storage.${namespace}.${key}`, () =>
+            value
+              .listBuckets()
+              .then(() => true)
+              .catch(() => false),
+          ),
+        );
+      }
+    }
 
-    const res = {};
+    const results = await Promise.all(checksPromises);
+    const res: Record<string, ImAlive> = {};
     for (const r of results) Object.assign(res, r);
+
+    const allAlive = Object.values(res).every((r) => r.status === "alive");
+
+    if (allAlive) {
+      fs.appendFileSync(logPath, `${Date.now()}\n`);
+    }
+
     return res;
   }
 
@@ -157,7 +190,7 @@ export async function createModule<
   };
 
   // @ts-expect-error
-  return result; // Type assertion needed due to conditional return type
+  return result;
 }
 
 // Updated GnModule type with full option support
@@ -195,12 +228,12 @@ async function createS3Connection(namespace: string, storageName: string) {
 async function check(key: string, fn: () => Promise<boolean> | boolean) {
   const startTime = process.hrtime();
   const success = await fn();
-  const elapsedTime = process.hrtime(startTime);
-  const elapsedMS = (elapsedTime[0] * 1e9 + elapsedTime[1]) / 1e6;
+  const [elapsedTimeSec, elapsedTimeNano] = process.hrtime(startTime);
+  const elapsed = (elapsedTimeSec * 1e9 + elapsedTimeNano / 1e9).toPrecision(6);
   return {
     [key]: {
       status: success ? ("alive" as const) : ("dead" as const),
-      latency: elapsedMS,
+      latency: elapsed,
     },
   };
 }
