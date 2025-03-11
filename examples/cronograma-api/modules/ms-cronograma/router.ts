@@ -4,11 +4,12 @@ import {
   deleteCronogramaUseCase,
   getCronogramasUseCase,
 } from "@ms-cronograma/use-cases/cronogramas";
-import { authMiddleware } from "glim-node/middleware";
+import { authMiddleware, bifrostMiddleware } from "glim-node/middleware";
 import { Hono } from "hono";
 import { z } from "zod";
 
-export const router = new Hono()
+const routerV1 = new Hono()
+  .basePath("/v1")
   .use(authMiddleware)
   .get("/cronogramas", async (c) => {
     const cronogramas = await getCronogramasUseCase();
@@ -36,3 +37,15 @@ export const router = new Hono()
       return c.body(null, 204);
     },
   );
+
+const routerPrivate = new Hono()
+  .basePath("/private")
+  .use(bifrostMiddleware)
+  .get("/cronogramas", async (c) => {
+    const cronogramas = await getCronogramasUseCase();
+    return c.json(cronogramas);
+  })
+
+export const router = new Hono()
+  .route("/", routerV1)
+  .route("/", routerPrivate);

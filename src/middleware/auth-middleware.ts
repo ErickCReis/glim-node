@@ -15,7 +15,7 @@ export const authMiddleware = createMiddleware<{
 }>(async (c, next) => {
   const authHeader = c.req.header(AUTH_HEADER);
   if (!authHeader) {
-    throw new HTTPException(401, { message: "'Usuário não autenticado.'" });
+    throw new HTTPException(401, { message: "Usuário não autenticado." });
   }
 
   c.set("auth", JSON.parse(atob(authHeader)));
