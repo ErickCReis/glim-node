@@ -3,15 +3,18 @@ import { HTTPException } from "hono/http-exception";
 
 const AUTH_HEADER = "x-auth";
 
-type User = {
+type Auth = {
   id: number;
   name: string;
   nickname: string;
-  email: string;
+  sigue_aluno_id: number;
+  sigue_professor_id: number;
+  sigue_usuario_id: number;
+  questoes_usuario_id: number;
 };
 
 export const authMiddleware = createMiddleware<{
-  Variables: { auth: User };
+  Variables: { auth: Auth };
 }>(async (c, next) => {
   const authHeader = c.req.header(AUTH_HEADER);
   if (!authHeader) {

@@ -6,7 +6,7 @@ const BIFROST_HEADER = "x-bifrost";
 export const bifrostMiddleware = createMiddleware(async (c, next) => {
   const bifrostHeader = c.req.header(BIFROST_HEADER);
   if (!bifrostHeader) {
-    throw new HTTPException(401, { message: "Bifrost não conjurada." });
+    throw new HTTPException(400, { message: "Bifrost não conjurada." });
   }
 
   await next();
