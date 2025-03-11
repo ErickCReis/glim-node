@@ -37,10 +37,13 @@ type BaseModule<TNamespace extends string> = {
     resource: "all" | "db" | "cache" | "storage",
     force: boolean,
   ) => Promise<Record<string, ImAlive> | ["OK"]>;
+
   _router: Hono | null;
-  loadRouter<TRouter extends Hono>(
-    router: TRouter,
-  ): ReturnType<typeof hc<TRouter>>;
+  loadRouter<
+    // biome-ignore lint/suspicious/noExplicitAny:
+    TRouter extends Hono<any, any, any>,
+    Thc extends typeof hc<TRouter> = typeof hc<TRouter>,
+  >(router: TRouter): (...args: Parameters<Thc>) => ReturnType<Thc>;
 };
 
 // Define return types based on configuration
@@ -179,11 +182,15 @@ export async function createModule<
     logger: createLogger(namespace),
     imAlive,
     _router: null as unknown as Hono,
-    loadRouter<TRouter extends Hono>(router: TRouter) {
+    loadRouter(router: Hono) {
       this._router = new Hono({ strict: false })
         .basePath(namespace)
         .route("/", router);
-      return hc<TRouter>(`http://localhost:3000/${namespace}`);
+      return (...args: Parameters<typeof hc>) => {
+        const basePath = args[0].endsWith("/") ? args[0] : `${args[0]}/`;
+        args[0] = `${basePath}${namespace}`;
+        return hc(...args);
+      };
     },
 
     ...db,

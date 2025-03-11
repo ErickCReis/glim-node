@@ -8,6 +8,7 @@ import { loggerMiddleware } from "@core/middleware/logger-middleware.js";
 import { serve } from "@hono/node-server";
 import { getConnInfo } from "@hono/node-server/conninfo";
 import { Hono } from "hono";
+import { compress } from "hono/compress";
 import { showRoutes } from "hono/dev";
 import { HTTPException } from "hono/http-exception";
 import { requestId } from "hono/request-id";
@@ -18,8 +19,20 @@ export function start(modules: Array<GnModule>) {
 
   const app = new Hono({ strict: false });
 
-  app.use("*", requestId({ headerName: "trace-id" }));
-  app.use("*", corsMiddleware);
+  app.use(
+    "*",
+    requestId({ headerName: "trace-id" }),
+    compress(),
+    corsMiddleware,
+    async (c, next) => {
+      c.header(
+        "cache-control",
+        "no-store, no-cache, must-revalidate, max-age=0, post-check=0, pre-check=0",
+      );
+      c.header("pragma", "no-cache");
+      await next();
+    },
+  );
 
   app.get(
     "/im-alive/:resource?",
@@ -131,7 +144,7 @@ export function start(modules: Array<GnModule>) {
       port: 3000,
     },
     (info) => {
-      console.log(`Server is running on http://localhost:${info.port}`);
+      console.log(`Server is running on port ${info.port}`);
     },
   );
 }

@@ -7,7 +7,9 @@ export const mscronograma = await createModule("ms-cronograma", {
   storage: ["construcao"],
 });
 
-export const client = mscronograma.loadRouter(router);
+const hcWithType = mscronograma.loadRouter(router);
+const client = hcWithType("http://localhost:3000/");
+console.log(client.cronogramas.$url().href);
 
 // Client test
 // client.cronogramas

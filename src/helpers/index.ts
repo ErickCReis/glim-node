@@ -1,4 +1,3 @@
-export { auth, type Auth } from "@core/helpers/auth";
 export {
   coreEnv,
   getPostgresEnv,

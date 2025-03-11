@@ -1,19 +1,23 @@
-import { auth } from "@core/helpers/auth.js";
 import { createMiddleware } from "hono/factory";
 import { HTTPException } from "hono/http-exception";
 
-export const AUTH_HEADER = "x-auth";
+const AUTH_HEADER = "x-auth";
 
-export const authMiddleware = createMiddleware(async (c, next) => {
+type User = {
+  id: number;
+  name: string;
+  nickname: string;
+  email: string;
+};
+
+export const authMiddleware = createMiddleware<{
+  Variables: { auth: User };
+}>(async (c, next) => {
   const authHeader = c.req.header(AUTH_HEADER);
-
   if (!authHeader) {
     throw new HTTPException(401, { message: "'Usuário não autenticado.'" });
   }
 
-  auth.login(authHeader);
-
+  c.set("auth", JSON.parse(atob(authHeader)));
   await next();
-
-  auth.logout();
 });
