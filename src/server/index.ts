@@ -1,6 +1,7 @@
 import "dotenv/config";
 
-import type { GnModule, ImAlive } from "@core/gn-module.js";
+import type { ImAlive } from "@core/_internal/im-alive";
+import type { GnModule } from "@core/gn-module.js";
 import { coreEnv } from "@core/helpers/env.js";
 import { createLogger } from "@core/helpers/logger.js";
 import { corsMiddleware } from "@core/middleware/cors-middleware.js";
