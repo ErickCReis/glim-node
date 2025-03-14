@@ -1,8 +1,8 @@
 import {
+  type Feature,
   type FeatureDriver,
-  type FeatureDriverMap,
   type FeatureDriverType,
-  createConnection,
+  createDriver,
 } from "@core/_internal/features";
 import { type ImAliveFn, createImAlive } from "@core/_internal/im-alive";
 import { coreEnv } from "@core/helpers/env.js";
@@ -10,13 +10,27 @@ import { type Logger, createLogger } from "@core/helpers/logger.js";
 import { Hono } from "hono";
 import { hc } from "hono/client";
 
-// biome-ignore lint/complexity/noBannedTypes:
-type EmptyObject = {};
+type EmptyObject = Record<string, never>;
 
-type ModuleConfig<TStorageKeys extends Array<string> | undefined> = {
-  db?: FeatureDriver<"db">;
-  cache?: FeatureDriver<"cache">;
-  storage?: TStorageKeys;
+type ModuleConfigItem<
+  F extends Feature,
+  Keys extends ReadonlyArray<string> | undefined,
+> = {
+  default?: FeatureDriver<F>;
+} & (Keys extends undefined
+  ? EmptyObject
+  : {
+      [K in Keys extends ReadonlyArray<infer U> ? U : never]: FeatureDriver<F>;
+    });
+
+type ModuleConfig<
+  DbKeys extends ReadonlyArray<string> | undefined,
+  CacheKeys extends ReadonlyArray<string> | undefined,
+  StorageKeys extends ReadonlyArray<string> | undefined,
+> = {
+  db?: ModuleConfigItem<"db", DbKeys>;
+  cache?: ModuleConfigItem<"cache", CacheKeys>;
+  storage?: ModuleConfigItem<"storage", StorageKeys>;
 };
 
 type BaseModule<TNamespace extends string> = {
@@ -35,92 +49,86 @@ type BaseModule<TNamespace extends string> = {
   ) => (...args: Parameters<Thc>) => ReturnType<Thc>;
 };
 
-type ModuleWithOptions<
-  TNamespace extends string,
-  HasDB extends boolean = false,
-  HasCache extends boolean = false,
-  StorageKeys extends Array<string> | undefined = undefined,
-> = BaseModule<TNamespace> &
-  (HasDB extends true
-    ? { db: FeatureDriverType<"db", "postgres"> }
-    : EmptyObject) &
-  (HasCache extends true
-    ? { cache: FeatureDriverType<"cache", "redis"> }
-    : EmptyObject) &
-  (StorageKeys extends undefined
-    ? EmptyObject
-    : {
-        storage: {
-          [K in StorageKeys extends Array<infer U>
-            ? U
-            : never]: FeatureDriverType<"storage", "s3">[string];
-        };
-      });
+// biome-ignore lint/suspicious/noExplicitAny:
+type UnionToIntersection<U> = (U extends any ? (k: U) => void : never) extends (
+  k: infer I,
+) => void
+  ? I
+  : never;
 
-export async function createModule<
-  const TNamespace extends string,
-  const StorageKeys extends Array<string> | undefined,
-  const TConfig extends ModuleConfig<StorageKeys>,
->(
-  namespace: TNamespace,
-  config?: TConfig,
-): Promise<
-  ModuleWithOptions<
-    TNamespace,
-    TConfig extends FeatureDriverMap<"db"> ? true : false,
-    TConfig extends FeatureDriverMap<"cache"> ? true : false,
-    TConfig["storage"]
-  >
-> {
-  const db =
-    config?.db === "postgres"
-      ? { db: await createConnection.postgres(namespace) }
-      : {};
+type Prettify<T> = {
+  [K in keyof T]: T[K];
+} & {};
 
-  const cache =
-    config?.cache === "redis"
-      ? { cache: await createConnection.redis(namespace) }
-      : {};
-
-  const storages = await Promise.all(
-    (config?.storage ?? []).map(async (s) => {
-      return {
-        name: s,
-        storage: await createConnection.s3(namespace, s),
-      };
-    }),
-  );
-
-  const storage =
-    storages.length > 0
-      ? {
-          storage: storages.reduce(
-            (acc, { name, storage }) => {
-              acc[name] = storage;
-              return acc;
-            },
-            {} as FeatureDriverType<"storage", "s3">,
-          ),
-        }
-      : {};
-
-  const resources = {
-    db: {
-      postgres: db.db,
-    },
-    cache: {
-      redis: cache.cache,
-    },
-    storage: {
-      s3: storage.storage,
-    },
+// biome-ignore lint/suspicious/noExplicitAny:
+type ModuleInstance<T extends ModuleConfig<any, any, any>> = {
+  [K in keyof T & string]: (T[K] extends {
+    // @ts-expect-error
+    default: infer Driver extends FeatureDriver<K>;
+  }
+    ? // @ts-expect-error
+      { [P in K]: FeatureDriverType<K, Driver> }
+    : EmptyObject) & {
+    [SubKey in keyof T[K] & string as SubKey extends "default"
+      ? never
+      : `${K}${Capitalize<SubKey>}`]: T[K] extends Record<SubKey, infer Driver>
+      ? // @ts-expect-error
+        Driver extends FeatureDriver<K>
+        ? // @ts-expect-error
+          FeatureDriverType<K, Driver>
+        : never
+      : never;
   };
+}[keyof T & string];
 
-  const result = {
+// Main function to create module with configured options
+export async function createModule<
+  const Namespace extends string,
+  const DbKeys extends ReadonlyArray<string> | undefined,
+  const CacheKeys extends ReadonlyArray<string> | undefined,
+  const StorageKeys extends ReadonlyArray<string> | undefined,
+  const Config extends ModuleConfig<DbKeys, CacheKeys, StorageKeys>,
+>(
+  namespace: Namespace,
+  config: Config,
+): Promise<
+  Prettify<BaseModule<Namespace> & UnionToIntersection<ModuleInstance<Config>>>
+> {
+  async function processFeature<F extends Feature>(feature: F) {
+    const featureResult: Record<string, FeatureDriverType<F>> = {};
+
+    const featureConfig = config[feature];
+    if (featureConfig?.default) {
+      featureResult[feature] = await createDriver(
+        feature,
+        featureConfig.default as FeatureDriver<F>,
+        namespace,
+      );
+    }
+
+    const extraKeys = getExtraKeys(feature, config);
+    for (const [subKey, driver] of Object.entries(extraKeys)) {
+      const capitalizedSubKey =
+        subKey.charAt(0).toUpperCase() + subKey.slice(1);
+      featureResult[`${feature}${capitalizedSubKey}`] = await createDriver(
+        feature,
+        driver,
+        namespace,
+        subKey,
+      );
+    }
+
+    return featureResult;
+  }
+
+  const dbResult = await processFeature("db");
+  const cacheResult = await processFeature("cache");
+  const storageResult = await processFeature("storage");
+
+  const result: Record<string, unknown> = {
     namespace,
     env: coreEnv,
     logger: createLogger(namespace),
-    imAlive: createImAlive(namespace, resources),
     _router: null as unknown as Hono,
     loadRouter(router: Hono) {
       this._router = new Hono({ strict: false })
@@ -133,9 +141,15 @@ export async function createModule<
       };
     },
 
-    ...db,
-    ...cache,
-    ...storage,
+    imAlive: createImAlive(namespace, {
+      db: dbResult,
+      cache: cacheResult,
+      storage: storageResult,
+    }),
+
+    ...dbResult,
+    ...cacheResult,
+    ...storageResult,
   };
 
   // @ts-expect-error
@@ -143,3 +157,21 @@ export async function createModule<
 }
 
 export type GnModule = Awaited<ReturnType<typeof createModule>>;
+
+function getExtraKeys<F extends Feature>(
+  feature: F,
+  // biome-ignore lint/suspicious/noExplicitAny:
+  config: ModuleConfig<any, any, any> | undefined,
+): Record<string, FeatureDriver<F>> {
+  if (!config || !config[feature]) {
+    return {};
+  }
+
+  const extraKeys: Record<string, FeatureDriver<F>> = {};
+  for (const [key, value] of Object.entries(config[feature])) {
+    if (key !== "default") {
+      extraKeys[key] = value as FeatureDriver<F>;
+    }
+  }
+  return extraKeys;
+}

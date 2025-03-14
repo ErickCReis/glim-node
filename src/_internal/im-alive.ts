@@ -1,6 +1,10 @@
 import fs from "node:fs";
 import { join } from "node:path";
-import type { Feature, FeatureConfig } from "@core/_internal/features";
+import type {
+  Feature,
+  FeatureConfig,
+  FeatureDriverType,
+} from "@core/_internal/features";
 
 export type ImAlive = {
   status: "alive" | "dead";
@@ -12,9 +16,9 @@ export type ImAliveFn = (
   force: boolean,
 ) => Promise<Record<string, ImAlive> | ["OK"]>;
 
-async function check(key: string, fn: () => Promise<boolean> | boolean) {
+async function check(key: string, fn: () => Promise<boolean>) {
   const startTime = process.hrtime();
-  const success = await fn();
+  const success = await fn().catch(() => false);
   const [elapsedTimeSec, elapsedTimeNano] = process.hrtime(startTime);
   const elapsed = (elapsedTimeSec * 1e9 + elapsedTimeNano / 1e9).toPrecision(6);
   return {
@@ -25,10 +29,10 @@ async function check(key: string, fn: () => Promise<boolean> | boolean) {
   };
 }
 
-export async function createImAlive(
+export function createImAlive(
   namespace: string,
   resources: {
-    [K in keyof FeatureConfig]?: Partial<FeatureConfig[K]>;
+    [K in keyof FeatureConfig]?: Record<string, FeatureDriverType<K>>;
   },
 ) {
   return async (resource: Feature | "all" = "all", force = false) => {
@@ -42,36 +46,40 @@ export async function createImAlive(
 
     const checksPromises = [];
 
-    const db = resources.db?.postgres;
-    if ((resource === "all" || resource === "db") && db) {
-      checksPromises.push(
-        check(`db.${namespace}`, () =>
-          db
-            .execute("SELECT 1")
-            .then((r) => r.rowCount === 1)
-            .catch(() => false),
-        ),
-      );
-    }
+    if (resource === "all" || resource === "db") {
+      for (const [key, value] of Object.entries(resources.db ?? {})) {
+        const keyName = key.replace("db", "").toLocaleLowerCase();
+        const newKey = key === "" ? "" : `.${keyName}`;
 
-    const cache = resources.cache?.redis;
-    if ((resource === "all" || resource === "cache") && cache) {
-      checksPromises.push(
-        check(`cache.${namespace}`, () =>
-          cache.ping().then((r) => r === "PONG"),
-        ),
-      );
-    }
-
-    const storage = resources.storage?.s3;
-    if ((resource === "all" || resource === "storage") && storage) {
-      for (const [key, value] of Object.entries(storage)) {
         checksPromises.push(
-          check(`storage.${namespace}.${key}`, () =>
-            value
-              .listBuckets()
-              .then(() => true)
-              .catch(() => false),
+          check(`db.${namespace}${newKey}`, () =>
+            value.execute("SELECT 1").then((r) => r.rowCount === 1),
+          ),
+        );
+      }
+    }
+
+    if (resource === "all" || resource === "cache") {
+      for (const [key, value] of Object.entries(resources.cache ?? {})) {
+        const keyName = key.replace("cache", "").toLocaleLowerCase();
+        const newKey = key === "" ? "" : `.${keyName}`;
+
+        checksPromises.push(
+          check(`cache.${namespace}${newKey}`, () =>
+            value.ping().then((r) => r === "PONG"),
+          ),
+        );
+      }
+    }
+
+    if (resource === "all" || resource === "storage") {
+      for (const [key, value] of Object.entries(resources.storage ?? {})) {
+        const keyName = key.replace("storage", "").toLocaleLowerCase();
+        const newKey = key === "" ? "" : `.${keyName}`;
+
+        checksPromises.push(
+          check(`storage.${namespace}${newKey}`, () =>
+            value.listBuckets().then(() => true),
           ),
         );
       }

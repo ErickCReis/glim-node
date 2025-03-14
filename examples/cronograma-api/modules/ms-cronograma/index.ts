@@ -2,9 +2,15 @@ import { router } from "@ms-cronograma/router";
 import { createModule } from "glim-node";
 
 export const mscronograma = await createModule("ms-cronograma", {
-  db: "postgres",
-  cache: "redis",
-  storage: ["construcao"],
+  db: {
+    default: "postgres",
+  },
+  cache: {
+    default: "redis",
+  },
+  storage: {
+    construcao: "s3"
+  }
 });
 
 const hcWithType = mscronograma.loadRouter(router);
