@@ -49,7 +49,7 @@ export function createImAlive(
     if (resource === "all" || resource === "db") {
       for (const [key, value] of Object.entries(resources.db ?? {})) {
         const keyName = key.replace("db", "").toLocaleLowerCase();
-        const newKey = key === "" ? "" : `.${keyName}`;
+        const newKey = keyName === "" ? "" : `.${keyName}`;
 
         checksPromises.push(
           check(`db.${namespace}${newKey}`, () =>
@@ -62,7 +62,7 @@ export function createImAlive(
     if (resource === "all" || resource === "cache") {
       for (const [key, value] of Object.entries(resources.cache ?? {})) {
         const keyName = key.replace("cache", "").toLocaleLowerCase();
-        const newKey = key === "" ? "" : `.${keyName}`;
+        const newKey = keyName === "" ? "" : `.${keyName}`;
 
         checksPromises.push(
           check(`cache.${namespace}${newKey}`, () =>
@@ -75,7 +75,7 @@ export function createImAlive(
     if (resource === "all" || resource === "storage") {
       for (const [key, value] of Object.entries(resources.storage ?? {})) {
         const keyName = key.replace("storage", "").toLocaleLowerCase();
-        const newKey = key === "" ? "" : `.${keyName}`;
+        const newKey = keyName === "" ? "" : `.${keyName}`;
 
         checksPromises.push(
           check(`storage.${namespace}${newKey}`, () =>

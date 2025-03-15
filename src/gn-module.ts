@@ -41,7 +41,6 @@ type BaseModule<TNamespace extends string> = {
 
   _router: Hono | null;
   loadRouter: <
-    // biome-ignore lint/suspicious/noExplicitAny:
     TRouter extends Hono<any, any, any>,
     Thc extends typeof hc<TRouter> = typeof hc<TRouter>,
   >(
@@ -49,7 +48,6 @@ type BaseModule<TNamespace extends string> = {
   ) => (...args: Parameters<Thc>) => ReturnType<Thc>;
 };
 
-// biome-ignore lint/suspicious/noExplicitAny:
 type UnionToIntersection<U> = (U extends any ? (k: U) => void : never) extends (
   k: infer I,
 ) => void
@@ -60,7 +58,6 @@ type Prettify<T> = {
   [K in keyof T]: T[K];
 } & {};
 
-// biome-ignore lint/suspicious/noExplicitAny:
 type ModuleInstance<T extends ModuleConfig<any, any, any>> = {
   [K in keyof T & string]: (T[K] extends {
     // @ts-expect-error
@@ -81,7 +78,6 @@ type ModuleInstance<T extends ModuleConfig<any, any, any>> = {
   };
 }[keyof T & string];
 
-// Main function to create module with configured options
 export async function createModule<
   const Namespace extends string,
   const DbKeys extends ReadonlyArray<string> | undefined,
@@ -160,7 +156,6 @@ export type GnModule = Awaited<ReturnType<typeof createModule>>;
 
 function getExtraKeys<F extends Feature>(
   feature: F,
-  // biome-ignore lint/suspicious/noExplicitAny:
   config: ModuleConfig<any, any, any> | undefined,
 ): Record<string, FeatureDriver<F>> {
   if (!config || !config[feature]) {

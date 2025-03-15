@@ -30,8 +30,23 @@ async function copyDirectory(
   }
 }
 
-export default defineConfig((options) => {
-  const cli = {
+export default defineConfig([
+  {
+    entry: {
+      index: "./src/index.ts",
+      server: "./src/server/index.ts",
+      helpers: "./src/helpers/index.ts",
+      middleware: "./src/middleware/index.ts",
+    },
+    outDir: "./dist",
+    format: "esm",
+    sourcemap: true,
+    splitting: true,
+    dts: true,
+    clean: true,
+    external,
+  },
+  {
     entry: {
       bin: "./src/bin/index.ts",
     },
@@ -49,25 +64,5 @@ export default defineConfig((options) => {
     banner: {
       js: "#!/usr/bin/env node",
     },
-  } satisfies Options;
-
-  if (options.watch) return cli;
-
-  const lib = {
-    entry: {
-      index: "./src/index.ts",
-      server: "./src/server/index.ts",
-      helpers: "./src/helpers/index.ts",
-      middleware: "./src/middleware/index.ts",
-    },
-    outDir: "./dist",
-    format: "esm",
-    sourcemap: true,
-    splitting: true,
-    dts: true,
-    clean: true,
-    external,
-  } satisfies Options;
-
-  return [lib, cli];
-});
+  },
+]);

@@ -23,7 +23,7 @@ export function createLogger(namespace = "main"): Logger {
 
     transport: {
       target: "pino/file",
-      options: { destination: `./logs/${namespace}.log` },
+      options: { destination: `./logs/${namespace}.log`, mkdir: true },
     },
   });
 }
