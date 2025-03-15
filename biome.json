@@ -7,7 +7,7 @@
   },
   "files": {
     "ignoreUnknown": false,
-    "ignore": ["node_modules/**", "dist/**", "examples/**"]
+    "ignore": ["node_modules/**", "dist/**"]
   },
   "formatter": {
     "enabled": true,
@@ -20,6 +20,9 @@
     "enabled": true,
     "rules": {
       "recommended": true,
+      "correctness": {
+        "noUnusedImports": "error"
+      },
       "suspicious": {
         "noExplicitAny": "warn"
       }

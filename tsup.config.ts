@@ -1,6 +1,6 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import { type Options, defineConfig } from "tsup";
+import { defineConfig } from "tsup";
 
 import pkg from "./package.json";
 

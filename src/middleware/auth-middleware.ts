@@ -3,7 +3,7 @@ import { HTTPException } from "hono/http-exception";
 
 const AUTH_HEADER = "x-auth";
 
-type Auth = {
+export type Auth = {
   id: number;
   name: string;
   nickname: string;

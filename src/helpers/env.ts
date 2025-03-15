@@ -6,6 +6,7 @@ const appEnvOptions = [
   "staging",
   "production",
 ] as const;
+
 const appEnvOptionsMap = {
   production: "PRD",
   staging: "STG",
@@ -20,6 +21,9 @@ export const coreEnv = z
       .enum(["local", "development", "staging", "production"])
       .transform((v) => appEnvOptionsMap[v]),
     APP_CORS_ORIGIN: z.string().optional().default("*"),
+
+    CACHE_MIDDLEWARE: z.coerce.boolean().default(false),
+    CACHE_MIDDLEWARE_KEY_EXPIRE: z.coerce.number().default(86400),
   })
   .parse(process.env);
 

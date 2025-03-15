@@ -4,6 +4,7 @@ import type { ImAlive } from "@core/_internal/im-alive";
 import type { GnModule } from "@core/gn-module.js";
 import { coreEnv } from "@core/helpers/env.js";
 import { createLogger } from "@core/helpers/logger.js";
+import { cacheDriverMiddleware } from "@core/middleware/cache-middleware";
 import { corsMiddleware } from "@core/middleware/cors-middleware.js";
 import { loggerMiddleware } from "@core/middleware/logger-middleware.js";
 import { serve } from "@hono/node-server";
@@ -15,7 +16,7 @@ import { HTTPException } from "hono/http-exception";
 import { requestId } from "hono/request-id";
 import { validator } from "hono/validator";
 
-export function start(modules: Array<GnModule>) {
+export async function start(modules: Array<GnModule>) {
   const mainLogger = createLogger();
 
   const app = new Hono({ strict: false });
@@ -25,6 +26,7 @@ export function start(modules: Array<GnModule>) {
     requestId({ headerName: "trace-id" }),
     compress(),
     corsMiddleware,
+    await cacheDriverMiddleware(),
     async (c, next) => {
       c.header(
         "cache-control",

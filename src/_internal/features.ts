@@ -12,7 +12,7 @@ const featureConfig = {
   cache: {
     async redis(namespace: string, key = "default") {
       const redisEnv = getRedisEnv(namespace);
-      const { Redis } = await import("ioredis");
+      const { Redis } = await import("@core/helpers/redis.js");
       return new Redis(redisEnv);
     },
   },

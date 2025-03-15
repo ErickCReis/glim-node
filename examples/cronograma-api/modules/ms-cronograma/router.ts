@@ -2,16 +2,23 @@ import { sValidator } from "@hono/standard-validator";
 import {
   createCronogramaUseCase,
   deleteCronogramaUseCase,
+  getCronogramaUseCase,
   getCronogramasUseCase,
 } from "@ms-cronograma/use-cases/cronogramas";
-import { authMiddleware, bifrostMiddleware } from "glim-node/middleware";
+import {
+  authMiddleware,
+  bifrostMiddleware,
+  cacheMiddleware,
+  cacheMiddlewareByUser,
+} from "glim-node/middleware";
 import { Hono } from "hono";
+import { HTTPException } from "hono/http-exception";
 import { z } from "zod";
 
 const routerV1 = new Hono()
   .basePath("/v1")
   .use(authMiddleware)
-  .get("/cronogramas", async (c) => {
+  .get("/cronogramas", cacheMiddlewareByUser(), async (c) => {
     const cronogramas = await getCronogramasUseCase();
     return c.json(cronogramas);
   })
@@ -22,10 +29,24 @@ const routerV1 = new Hono()
       const { nome } = c.req.valid("json");
       const cronograma = await createCronogramaUseCase({ nome });
       if (!cronograma) {
-        return c.json({ message: "Erro" }, 404);
+        throw new HTTPException(400);
       }
 
       return c.json(cronograma, 201);
+    },
+  )
+  .get(
+    "/cronogramas/:id",
+    cacheMiddlewareByUser(30),
+    sValidator("param", z.object({ id: z.coerce.number() })),
+    async (c) => {
+      const { id } = c.req.valid("param");
+      const cronograma = await getCronogramaUseCase(id);
+      if (!cronograma) {
+        throw new HTTPException(404);
+      }
+
+      return c.json(cronograma);
     },
   )
   .delete(
@@ -41,11 +62,9 @@ const routerV1 = new Hono()
 const routerPrivate = new Hono()
   .basePath("/private")
   .use(bifrostMiddleware)
-  .get("/cronogramas", async (c) => {
+  .get("/cronogramas", cacheMiddleware(), async (c) => {
     const cronogramas = await getCronogramasUseCase();
     return c.json(cronogramas);
-  })
+  });
 
-export const router = new Hono()
-  .route("/", routerV1)
-  .route("/", routerPrivate);
+export const router = new Hono().route("/", routerV1).route("/", routerPrivate);

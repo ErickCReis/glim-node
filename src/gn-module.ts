@@ -125,6 +125,7 @@ export async function createModule<
     namespace,
     env: coreEnv,
     logger: createLogger(namespace),
+
     _router: null as unknown as Hono,
     loadRouter(router: Hono) {
       this._router = new Hono({ strict: false })
