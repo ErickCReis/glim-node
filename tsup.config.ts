@@ -40,8 +40,12 @@ async function copyDirectory(
       const data = await fs.readFile(sourcePath, "utf-8");
       const yml = YAML.parse(data);
 
-      yml.services.app.working_dir = ".";
-      yml.services.app.volumes = [".pnpm-store", "node_modules"];
+      yml.services.app.working_dir = "/app";
+      yml.services.app.volumes = [
+        ".:/app",
+        "/app/.pnpm-store",
+        "/app/node_modules",
+      ];
 
       await fs.writeFile(targetPath, YAML.stringify(yml));
       continue;
