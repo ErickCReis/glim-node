@@ -2,6 +2,8 @@ services:
   app:
     image: node:22-alpine
     working_dir: /usr/src/app/examples/cronograma-api
+    env_file:
+      - .env
     depends_on:
       - db
       - cache

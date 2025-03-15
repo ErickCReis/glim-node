@@ -1,6 +1,7 @@
 {
   "name": "cronograma-api",
   "type": "module",
+  "version": "0.0.0",
   "scripts": {
     "build": "tsc",
     "check": "biome check --write . && tsc --noEmit",
@@ -26,9 +27,6 @@
     "typescript": "^5.7.3"
   },
   "pnpm": {
-    "onlyBuiltDependencies": [
-      "@biomejs/biome",
-      "esbuild"
-    ]
+    "onlyBuiltDependencies": ["@biomejs/biome", "esbuild"]
   }
 }

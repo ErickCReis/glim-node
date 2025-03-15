@@ -1,6 +1,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { defineConfig } from "tsup";
+import YAML from "yaml";
 
 import pkg from "./package.json";
 
@@ -24,9 +25,29 @@ async function copyDirectory(
 
     if (entry.isDirectory()) {
       await copyDirectory(sourcePath, targetPath, exclude);
-    } else {
-      await fs.copyFile(sourcePath, targetPath);
+      continue;
     }
+
+    if (entry.name === "package.json") {
+      const data = JSON.parse(await fs.readFile(sourcePath, "utf-8"));
+      data.dependencies["glim-node"] =
+        `npm:@ErickCReis/glim-node@^${pkg.version}`;
+      await fs.writeFile(targetPath, JSON.stringify(data, null, 2));
+      continue;
+    }
+
+    if (entry.name === "docker-compose.yml") {
+      const data = await fs.readFile(sourcePath, "utf-8");
+      const yml = YAML.parse(data);
+
+      yml.services.app.working_dir = ".";
+      yml.services.app.volumes = [".pnpm-store", "node_modules"];
+
+      await fs.writeFile(targetPath, YAML.stringify(yml));
+      continue;
+    }
+
+    await fs.copyFile(sourcePath, targetPath);
   }
 }
 
@@ -54,7 +75,7 @@ export default defineConfig([
     onSuccess: async () => {
       const source = path.join(import.meta.dirname, "examples");
       const target = path.join(import.meta.dirname, "dist", "templates");
-      const exclude = ["node_modules", ".env", "dist"];
+      const exclude = ["node_modules", "pnpm-lock.yaml", ".env", "dist"];
       await copyDirectory(source, target, exclude);
     },
     format: "esm",
