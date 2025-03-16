@@ -85,7 +85,15 @@ export async function start(modules: Array<GnModule>) {
       process.exit(1);
     }
 
-    app.use(`/${module.namespace}/*`, loggerMiddleware(module));
+    app.use(
+      `/${module.namespace}/*`,
+      loggerMiddleware(module),
+      async (c, next) => {
+        // @ts-expect-error
+        module._cacheMiddlewareDriver = c.var.driver;
+        await next();
+      },
+    );
     app.route("/", module._router);
   }
 

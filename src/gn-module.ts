@@ -1,3 +1,4 @@
+import { invalidateCacheMiddleware } from "@core/_internal/cache-middleware";
 import {
   type Feature,
   type FeatureDriver,
@@ -33,6 +34,8 @@ type ModuleConfig<
   storage?: ModuleConfigItem<"storage", StorageKeys>;
 };
 
+type DropFirst<T extends unknown[]> = T extends [any, ...infer U] ? U : never;
+
 type BaseModule<TNamespace extends string> = {
   namespace: TNamespace;
   env: typeof coreEnv;
@@ -46,6 +49,11 @@ type BaseModule<TNamespace extends string> = {
   >(
     router: TRouter,
   ) => (...args: Parameters<Thc>) => ReturnType<Thc>;
+
+  _cacheMiddlewareDriver: FeatureDriverType<"cache">;
+  invalidateCacheMiddleware: (
+    ...patterns: DropFirst<Parameters<typeof invalidateCacheMiddleware>>
+  ) => Promise<void>;
 };
 
 type UnionToIntersection<U> = (U extends any ? (k: U) => void : never) extends (
@@ -121,12 +129,13 @@ export async function createModule<
   const cacheResult = await processFeature("cache");
   const storageResult = await processFeature("storage");
 
-  const result: Record<string, unknown> = {
+  const result: BaseModule<Namespace> = {
     namespace,
     env: coreEnv,
     logger: createLogger(namespace),
 
     _router: null as unknown as Hono,
+    // @ts-expect-error
     loadRouter(router: Hono) {
       this._router = new Hono({ strict: false })
         .basePath(namespace)
@@ -136,6 +145,13 @@ export async function createModule<
         args[0] = `${basePath}${namespace}`;
         return hc(...args);
       };
+    },
+
+    async invalidateCacheMiddleware(...patterns) {
+      if (!this._cacheMiddlewareDriver) {
+        throw new Error("Cache middleware não está configurado");
+      }
+      await invalidateCacheMiddleware(this._cacheMiddlewareDriver, ...patterns);
     },
 
     imAlive: createImAlive(namespace, {

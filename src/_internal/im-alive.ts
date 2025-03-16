@@ -14,7 +14,7 @@ export type ImAlive = {
 export type ImAliveFn = (
   resource: Feature | "all",
   force: boolean,
-) => Promise<Record<string, ImAlive> | ["OK"]>;
+) => Promise<Record<string, ImAlive> | readonly ["OK"]>;
 
 async function check(key: string, fn: () => Promise<boolean>) {
   const startTime = process.hrtime();

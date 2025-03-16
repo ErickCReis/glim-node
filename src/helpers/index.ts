@@ -1,3 +1,4 @@
+export { md5 } from "@core/helpers/crypto";
 export {
   coreEnv,
   getPostgresEnv,

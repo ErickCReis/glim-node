@@ -1,11 +1,10 @@
+import { cacheMiddleware as helper } from "@core/_internal/cache-middleware";
 import { type FeatureDriverType, createDriver } from "@core/_internal/features";
 import { coreEnv } from "@core/helpers";
 import type { Auth } from "@core/middleware/auth-middleware";
-import type { HonoRequest } from "hono";
 import { createMiddleware } from "hono/factory";
 
 const CACHE_MIDDLEWARE_HEADER = "x-cache-middleware";
-const NAMESPACE = "CACHE_MIDDLEWARE";
 
 export async function cacheDriverMiddleware() {
   if (!coreEnv.CACHE_MIDDLEWARE) {
@@ -61,9 +60,16 @@ function _cacheMiddleware<ByUser extends boolean = false>({
     const userId = byUser ? auth.id : 0;
 
     const driver = c.var.driver;
-    const key = await getKey(c.req, userId);
+    const key = await helper.getKey(userId, {
+      path: c.req.path,
+      query: c.req.query(),
+      body: await c.req
+        .json()
+        .then(JSON.stringify)
+        .catch(() => ""),
+    });
 
-    const cached = await read(driver, key);
+    const cached = await helper.read(driver, key);
     if (cached) {
       c.header(CACHE_MIDDLEWARE_HEADER, "true");
       return c.json(cached);
@@ -73,89 +79,14 @@ function _cacheMiddleware<ByUser extends boolean = false>({
 
     const expiration =
       Math.round(Date.now() / 1000) + (ttl === "endOfDay" ? 86400 : ttl);
-    const data = JSON.stringify(await c.res.json());
+    const data = JSON.stringify(await c.res.json().catch(() => ({})));
 
-    await write(driver, key, expiration, data);
+    await helper.write(driver, key, expiration, data);
 
     c.res.headers.set(CACHE_MIDDLEWARE_HEADER, "false");
     c.res = new Response(data, {
       headers: c.res.headers,
       status: c.res.status,
     });
-  });
-}
-
-async function getKey(req: HonoRequest, userId: number) {
-  const queryString = Object.entries(req.query())
-    .sort(([a], [b]) => a.localeCompare(b))
-    .map(([k, v]) => `${k}=${v}`)
-    .join("&");
-
-  let bodyString = "";
-  try {
-    bodyString = JSON.stringify(await req.json());
-  } catch (_) {}
-
-  return [userId, req.path, `(${queryString + bodyString})`].join(":");
-}
-
-async function read(driver: FeatureDriverType<"cache">, key: string) {
-  const [userId, path, extra] = key.split(":");
-  if (!userId || !path || !extra) {
-    return false;
-  }
-
-  const fullKey = `${NAMESPACE}:${userId}`;
-  const hash = `${path}:${extra}`;
-
-  return driver.inDb(+userId, async () => {
-    const value = await driver.hget(fullKey, hash);
-    if (!value) {
-      return false;
-    }
-
-    const [expiration, data] = value.split("|");
-    if (!expiration || !data) {
-      return false;
-    }
-
-    if (+expiration < Date.now() / 1000) {
-      await driver.hdel(fullKey, hash);
-      return false;
-    }
-
-    return JSON.parse(data);
-  });
-}
-
-async function write(
-  driver: FeatureDriverType<"cache">,
-  key: string,
-  expiration: number,
-  data: string,
-) {
-  const [userId, path, extra] = key.split(":");
-  if (!userId || !path || !extra) {
-    return false;
-  }
-
-  const fullKey = `${NAMESPACE}:${userId}`;
-  const hash = `${path}:${extra}`;
-
-  return driver.inDb(+userId, async () => {
-    await driver.hset(fullKey, hash, `${expiration}|${data}`);
-
-    if (userId === "0") {
-      const currentExpiration = await driver.expiretime(fullKey);
-      if (currentExpiration <= 0) {
-        await driver.expire(fullKey, 86400);
-      }
-    } else {
-      await driver.expireat(
-        fullKey,
-        Math.round(Date.now() / 1000) + coreEnv.CACHE_MIDDLEWARE_KEY_EXPIRE,
-      );
-    }
-    return true;
   });
 }

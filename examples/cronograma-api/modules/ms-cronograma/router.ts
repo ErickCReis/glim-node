@@ -1,4 +1,5 @@
 import { sValidator } from "@hono/standard-validator";
+import { client, mscronograma } from "@ms-cronograma";
 import {
   createCronogramaUseCase,
   deleteCronogramaUseCase,
@@ -32,12 +33,24 @@ const routerV1 = new Hono()
         throw new HTTPException(400);
       }
 
+      mscronograma.invalidateCacheMiddleware(client.private.cronogramas, {});
+      mscronograma.invalidateCacheMiddleware(
+        client.v1.cronogramas,
+        {},
+        c.var.auth.id,
+      );
+      mscronograma.invalidateCacheMiddleware(
+        client.v1.cronogramas[":id"],
+        { id: "*" },
+        c.var.auth.id,
+      );
+
       return c.json(cronograma, 201);
     },
   )
   .get(
     "/cronogramas/:id",
-    cacheMiddlewareByUser(30),
+    cacheMiddlewareByUser(300),
     sValidator("param", z.object({ id: z.coerce.number() })),
     async (c) => {
       const { id } = c.req.valid("param");
