@@ -1,6 +1,5 @@
-import { cacheMiddleware as helper } from "@core/_internal/cache-middleware";
 import { type FeatureDriverType, createDriver } from "@core/_internal/features";
-import { coreEnv } from "@core/helpers";
+import { cacheRequest, coreEnv, time } from "@core/helpers";
 import type { Auth } from "@core/middleware/auth-middleware";
 import { createMiddleware } from "hono/factory";
 
@@ -20,19 +19,19 @@ export async function cacheDriverMiddleware() {
   });
 }
 
-export function cacheMiddleware(ttl: number | "endOfDay" = "endOfDay") {
+export function cacheMiddleware(ttl = time.untilEndOfDay("s")) {
   return _cacheMiddleware({ ttl });
 }
 
-export function cacheMiddlewareByUser(ttl: number | "endOfDay" = "endOfDay") {
+export function cacheMiddlewareByUser(ttl = time.untilEndOfDay("s")) {
   return _cacheMiddleware({ ttl, byUser: true });
 }
 
 function _cacheMiddleware<ByUser extends boolean = false>({
-  ttl = "endOfDay",
+  ttl,
   byUser,
 }: {
-  ttl?: number | "endOfDay";
+  ttl: number;
   byUser?: ByUser;
 }) {
   return createMiddleware<{
@@ -54,22 +53,15 @@ function _cacheMiddleware<ByUser extends boolean = false>({
 
     const auth = c.var.auth;
     if (byUser && !auth) {
-      throw new Error("Cache middleware by user must have auth");
+      return next();
     }
 
     const userId = byUser ? auth.id : 0;
 
     const driver = c.var.driver;
-    const key = await helper.getKey(userId, {
-      path: c.req.path,
-      query: c.req.query(),
-      body: await c.req
-        .json()
-        .then(JSON.stringify)
-        .catch(() => ""),
-    });
+    const key = await cacheRequest.getKey(userId, c.req.raw);
 
-    const cached = await helper.read(driver, key);
+    const cached = await cacheRequest.read(driver, key);
     if (cached) {
       c.header(CACHE_MIDDLEWARE_HEADER, "true");
       return c.json(cached);
@@ -77,11 +69,17 @@ function _cacheMiddleware<ByUser extends boolean = false>({
 
     await next();
 
-    const expiration =
-      Math.round(Date.now() / 1000) + (ttl === "endOfDay" ? 86400 : ttl);
-    const data = JSON.stringify(await c.res.json().catch(() => ({})));
+    const isJson = c.res.headers
+      .get("content-type")
+      ?.includes("application/json");
+    if (!isJson) {
+      return;
+    }
 
-    await helper.write(driver, key, expiration, data);
+    const expiration = time.now("s") + ttl;
+    const data = JSON.stringify(await c.res.json());
+
+    await cacheRequest.write(driver, key, expiration, data);
 
     c.res.headers.set(CACHE_MIDDLEWARE_HEADER, "false");
     c.res = new Response(data, {

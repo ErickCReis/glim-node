@@ -12,14 +12,14 @@ const featureConfig = {
   cache: {
     async redis(namespace: string, key = "default") {
       const redisEnv = getRedisEnv(namespace);
-      const { Redis } = await import("@core/helpers/redis.js");
-      return new Redis(redisEnv);
+      const { createRedisClient } = await import("@core/helpers/redis");
+      return createRedisClient(redisEnv);
     },
   },
   storage: {
     async s3(namespace: string, key = "default") {
       const s3Env = getS3Env(namespace, key);
-      const { createS3Client } = await import("@core/helpers/s3.js");
+      const { createS3Client } = await import("@core/helpers/s3");
       return createS3Client(s3Env);
     },
   },

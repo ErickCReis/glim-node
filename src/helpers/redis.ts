@@ -1,6 +1,6 @@
-import IORedis from "ioredis";
+import { Redis as IORedis, type RedisOptions } from "ioredis";
 
-export class Redis extends IORedis {
+class Redis extends IORedis {
   async inDb<TResult>(
     db: number,
     callback: (...args: any[]) => Promise<TResult>,
@@ -10,4 +10,10 @@ export class Redis extends IORedis {
     await this.select(0);
     return result;
   }
+}
+
+export type { Redis };
+
+export function createRedisClient(options: RedisOptions) {
+  return new Redis(options);
 }
