@@ -13,9 +13,11 @@ export type Auth = {
   questoes_usuario_id: number;
 };
 
-export const authMiddleware = createMiddleware<{
+type Context = {
   Variables: { auth: Auth };
-}>(async (c, next) => {
+};
+
+export const authMiddleware = createMiddleware<Context>(async (c, next) => {
   const authHeader = c.req.header(AUTH_HEADER);
   if (!authHeader) {
     throw new HTTPException(401, { message: "Usuário não autenticado." });

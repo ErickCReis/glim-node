@@ -5,8 +5,10 @@ import {
   createDriver,
 } from "@core/_internal/features";
 import { type ImAliveFn, createImAlive } from "@core/_internal/im-alive";
-import { type Logger, coreEnv, createLogger } from "@core/helpers";
-import { invalidateCacheMiddleware } from "@core/helpers/cache-request";
+import { cacheRequest } from "@core/helpers/cache-request";
+import { coreEnv } from "@core/helpers/env";
+import { type Logger, createLogger } from "@core/helpers/logger";
+
 import { Hono } from "hono";
 import { hc } from "hono/client";
 
@@ -49,11 +51,12 @@ type BaseModule<TNamespace extends string> = {
     router: TRouter,
   ) => (...args: Parameters<Thc>) => ReturnType<Thc>;
 
-  _cacheMiddlewareDriver: FeatureDriverType<"cache">;
-  invalidateCacheMiddleware: <
-    Client extends { $url: (arg: any) => URL; $get: (args: any) => any },
-  >(
-    ...patterns: DropFirst<Parameters<typeof invalidateCacheMiddleware<Client>>>
+  _cacheMiddlewareDriver: FeatureDriverType<"cache"> | undefined;
+  invalidateCacheMiddleware: (
+    ...patterns: DropFirst<Parameters<(typeof cacheRequest)["invalidate"]>>
+  ) => Promise<void>;
+  invalidateCacheMiddlewareByUser: (
+    ...args: DropFirst<Parameters<(typeof cacheRequest)["invalidateByUser"]>>
   ) => Promise<void>;
 };
 
@@ -149,10 +152,10 @@ export async function createModule<
     },
 
     async invalidateCacheMiddleware(...patterns) {
-      if (!this._cacheMiddlewareDriver) {
-        throw new Error("Cache middleware não está configurado");
-      }
-      await invalidateCacheMiddleware(this._cacheMiddlewareDriver, ...patterns);
+      await cacheRequest.invalidate(this._cacheMiddlewareDriver, ...patterns);
+    },
+    async invalidateCacheMiddlewareByUser(...args) {
+      await cacheRequest.invalidateByUser(this._cacheMiddlewareDriver, ...args);
     },
 
     imAlive: createImAlive(namespace, {

@@ -1,12 +1,12 @@
 import "dotenv/config";
 
 import type { ImAlive } from "@core/_internal/im-alive";
-import type { GnModule } from "@core/gn-module.js";
-import { coreEnv } from "@core/helpers/env.js";
-import { createLogger } from "@core/helpers/logger.js";
+import type { GnModule } from "@core/gn-module";
+import { coreEnv } from "@core/helpers/env";
+import { createLogger } from "@core/helpers/logger";
 import { cacheDriverMiddleware } from "@core/middleware/cache-middleware";
-import { corsMiddleware } from "@core/middleware/cors-middleware.js";
-import { loggerMiddleware } from "@core/middleware/logger-middleware.js";
+import { corsMiddleware } from "@core/middleware/cors-middleware";
+import { loggerMiddleware } from "@core/middleware/logger-middleware";
 import { serve } from "@hono/node-server";
 import { getConnInfo } from "@hono/node-server/conninfo";
 import { Hono } from "hono";
@@ -19,65 +19,63 @@ import { validator } from "hono/validator";
 export async function start(modules: Array<GnModule>) {
   const mainLogger = createLogger();
 
-  const app = new Hono({ strict: false });
-
-  app.use(
-    "*",
-    requestId({ headerName: "trace-id" }),
-    compress(),
-    corsMiddleware,
-    await cacheDriverMiddleware(),
-    async (c, next) => {
-      c.header(
-        "cache-control",
-        "no-store, no-cache, must-revalidate, max-age=0, post-check=0, pre-check=0",
-      );
-      c.header("pragma", "no-cache");
-      await next();
-    },
-  );
-
-  app.get(
-    "/im-alive/:resource?",
-    loggerMiddleware({ logger: mainLogger }),
-    validator("param", (value, c) => {
-      const validResources = ["db", "cache", "storage"] as const;
-      const resource = value.resource as
-        | (typeof validResources)[number]
-        | undefined;
-      if (resource && !validResources.includes(resource)) {
-        return c.notFound();
-      }
-
-      return { resource };
-    }),
-    validator("query", (value) => {
-      const force = value.force !== undefined;
-      return { force };
-    }),
-    async (c) => {
-      const info = await Promise.all(
-        modules.map((m) =>
-          m.imAlive(
-            c.req.valid("param").resource ?? "all",
-            c.req.valid("query").force,
-          ),
-        ),
-      );
-
-      const res: Record<string, ImAlive> = {};
-      for (const i of info) {
-        if (Array.isArray(i)) {
-          return c.json(i, 200);
+  const app = new Hono({ strict: false })
+    .use(
+      "*",
+      requestId({ headerName: "trace-id" }),
+      compress(),
+      corsMiddleware,
+      await cacheDriverMiddleware(),
+      async (c, next) => {
+        c.header(
+          "cache-control",
+          "no-store, no-cache, must-revalidate, max-age=0, post-check=0, pre-check=0",
+        );
+        c.header("pragma", "no-cache");
+        await next();
+      },
+    )
+    .get(
+      "/im-alive/:resource?",
+      loggerMiddleware({ logger: mainLogger }),
+      validator("param", (value, c) => {
+        const validResources = ["db", "cache", "storage"] as const;
+        const resource = value.resource as
+          | (typeof validResources)[number]
+          | undefined;
+        if (resource && !validResources.includes(resource)) {
+          return c.notFound();
         }
 
-        Object.assign(res, i);
-      }
+        return { resource };
+      }),
+      validator("query", (value) => {
+        const force = value.force !== undefined;
+        return { force };
+      }),
+      async (c) => {
+        const info = await Promise.all(
+          modules.map((m) =>
+            m.imAlive(
+              c.req.valid("param").resource ?? "all",
+              c.req.valid("query").force,
+            ),
+          ),
+        );
 
-      const someIsDead = Object.values(res).some((i) => i.status === "dead");
-      return c.json(res, someIsDead ? 500 : 200);
-    },
-  );
+        const res: Record<string, ImAlive> = {};
+        for (const i of info) {
+          if (Array.isArray(i)) {
+            return c.json(i, 200);
+          }
+
+          Object.assign(res, i);
+        }
+
+        const someIsDead = Object.values(res).some((i) => i.status === "dead");
+        return c.json(res, someIsDead ? 500 : 200);
+      },
+    );
 
   for (const module of modules) {
     if (!module._router) {
@@ -85,16 +83,16 @@ export async function start(modules: Array<GnModule>) {
       process.exit(1);
     }
 
-    app.use(
-      `/${module.namespace}/*`,
-      loggerMiddleware(module),
-      async (c, next) => {
-        // @ts-expect-error
-        module._cacheMiddlewareDriver = c.var.driver;
-        await next();
-      },
-    );
-    app.route("/", module._router);
+    app
+      .use(
+        `/${module.namespace}/*`,
+        loggerMiddleware(module),
+        async (c, next) => {
+          module._cacheMiddlewareDriver = c.var.driver;
+          await next();
+        },
+      )
+      .route("/", module._router);
   }
 
   app.onError((err, c) => {

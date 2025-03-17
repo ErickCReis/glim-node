@@ -5,25 +5,27 @@ import { createMiddleware } from "hono/factory";
 
 const CACHE_MIDDLEWARE_HEADER = "x-cache-middleware";
 
+type Context = {
+  Variables: { driver: FeatureDriverType<"cache"> | undefined };
+};
+
 export async function cacheDriverMiddleware() {
   if (!coreEnv.CACHE_MIDDLEWARE) {
-    return createMiddleware((_, next) => next());
+    return createMiddleware<Context>((_, next) => next());
   }
 
   const driver = await createDriver("cache", "redis", "middleware");
-  return createMiddleware<{
-    Variables: { driver: FeatureDriverType<"cache"> };
-  }>(async (c, next) => {
+  return createMiddleware<Context>(async (c, next) => {
     c.set("driver", driver);
     await next();
   });
 }
 
-export function cacheMiddleware(ttl = time.untilEndOfDay("s")) {
+export function cacheMiddleware(ttl = time.untilEndOfDay()) {
   return _cacheMiddleware({ ttl });
 }
 
-export function cacheMiddlewareByUser(ttl = time.untilEndOfDay("s")) {
+export function cacheMiddlewareByUser(ttl = time.untilEndOfDay()) {
   return _cacheMiddleware({ ttl, byUser: true });
 }
 
@@ -76,7 +78,7 @@ function _cacheMiddleware<ByUser extends boolean = false>({
       return;
     }
 
-    const expiration = time.now("s") + ttl;
+    const expiration = time.now() + ttl;
     const data = JSON.stringify(await c.res.json());
 
     await cacheRequest.write(driver, key, expiration, data);

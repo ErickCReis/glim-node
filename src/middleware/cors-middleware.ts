@@ -1,4 +1,4 @@
-import { coreEnv } from "@core/helpers/env.js";
+import { coreEnv } from "@core/helpers/env";
 import { cors } from "hono/cors";
 
 export const corsMiddleware = cors({

@@ -1,5 +1,5 @@
 import { toISOStringWithTimezone } from "@core/_internal/date";
-import { coreEnv } from "@core/helpers/env.js";
+import { coreEnv } from "@core/helpers/env";
 import pino from "pino";
 
 export type Logger = pino.Logger;

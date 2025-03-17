@@ -1,16 +1,8 @@
 import type { FeatureDriverType } from "@core/_internal/features";
-import { coreEnv, md5 } from "@core/helpers";
+import { md5 } from "@core/helpers/crypto";
+import { time } from "@core/helpers/time";
 
-export async function invalidateCacheMiddleware<
-  Client extends { $url: (arg: any) => URL; $get: any },
->(
-  driver: FeatureDriverType<"cache">,
-  client: Client,
-  param: NonNullable<Parameters<Client["$url"]>[0]>["param"],
-  userId = 0,
-) {
-  await _invalidate(driver, userId, [client.$url({ param })]);
-}
+type Driver = FeatureDriverType<"cache"> | undefined;
 
 export const cacheRequest = {
   NAMESPACE: "CACHE_REQUEST",
@@ -30,7 +22,11 @@ export const cacheRequest = {
     return [userId, url.pathname, md5(queryString + bodyString)].join(":");
   },
 
-  async read(driver: FeatureDriverType<"cache">, key: string) {
+  async read(driver: Driver, key: string) {
+    if (!driver) {
+      return false;
+    }
+
     const [userId, path, extra] = key.split(":");
     if (!userId || !path || !extra) {
       return false;
@@ -59,12 +55,11 @@ export const cacheRequest = {
     });
   },
 
-  async write(
-    driver: FeatureDriverType<"cache">,
-    key: string,
-    expiration: number,
-    data: string,
-  ) {
+  async write(driver: Driver, key: string, expiration: number, data: string) {
+    if (!driver) {
+      return false;
+    }
+
     const [userId, path, extra] = key.split(":");
     if (!userId || !path || !extra) {
       return false;
@@ -79,27 +74,21 @@ export const cacheRequest = {
       if (userId === "0") {
         const currentExpiration = await driver.expiretime(fullKey);
         if (currentExpiration <= 0) {
-          await driver.expire(fullKey, 86400);
+          await driver.expire(fullKey, time.untilEndOfDay());
         }
       } else {
-        await driver.expireat(
-          fullKey,
-          Math.round(Date.now() / 1000) + coreEnv.CACHE_MIDDLEWARE_KEY_EXPIRE,
-        );
+        await driver.expireat(fullKey, time.now() + time("1d"));
       }
       return true;
     });
   },
 
-  async invalidate(
-    driver: FeatureDriverType<"cache">,
-    ...patterns: [URL, ...URL[]]
-  ) {
+  async invalidate(driver: Driver, ...patterns: [URL, ...URL[]]) {
     return _invalidate(driver, 0, patterns);
   },
 
   async invalidateByUser(
-    driver: FeatureDriverType<"cache">,
+    driver: Driver,
     userId: number,
     ...patterns: [URL, ...URL[]]
   ) {
@@ -108,10 +97,14 @@ export const cacheRequest = {
 };
 
 async function _invalidate(
-  driver: FeatureDriverType<"cache">,
+  driver: Driver,
   userId: number,
   patterns: [URL, ...URL[]],
 ) {
+  if (!driver) {
+    return;
+  }
+
   const fullKey = `${cacheRequest.NAMESPACE}:${userId}`;
   const regex = patterns.map(
     (p) => new RegExp(`^${p.pathname.replaceAll("*", ".*")}:`),
@@ -123,7 +116,5 @@ async function _invalidate(
     if (toDelete.length) {
       await driver.hdel(fullKey, ...toDelete);
     }
-
-    return true;
   });
 }

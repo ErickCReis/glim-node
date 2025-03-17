@@ -33,16 +33,11 @@ const routerV1 = new Hono()
         throw new HTTPException(400);
       }
 
-      mscronograma.invalidateCacheMiddleware(client.private.cronogramas, {});
-      mscronograma.invalidateCacheMiddleware(
-        client.v1.cronogramas,
-        {},
+      mscronograma.invalidateCacheMiddleware(client.private.cronogramas.$url());
+      mscronograma.invalidateCacheMiddlewareByUser(
         c.var.auth.id,
-      );
-      mscronograma.invalidateCacheMiddleware(
-        client.v1.cronogramas[":id"],
-        { id: "*" },
-        c.var.auth.id,
+        client.v1.cronogramas.$url(),
+        client.v1.cronogramas[":id"].$url({ param: { id: "*" } }),
       );
 
       return c.json(cronograma, 201);
