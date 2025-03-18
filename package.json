@@ -9,7 +9,7 @@
     "registry": "https://npm.pkg.github.com/"
   },
   "type": "module",
-  "files": ["dist"],
+  "files": ["dist", "dist/templates/**/*"],
   "bin": {
     "gn": "./dist/bin.js"
   },

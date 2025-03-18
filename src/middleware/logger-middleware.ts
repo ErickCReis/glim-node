@@ -2,8 +2,23 @@ import type { Logger } from "@core/helpers/logger";
 import { getConnInfo } from "@hono/node-server/conninfo";
 import { createMiddleware } from "hono/factory";
 
+type Context = {
+  Variables: {
+    logger: Logger;
+  };
+};
+
+declare module "hono" {
+  interface ContextVariableMap {
+    logger: Logger;
+  }
+}
+
 export function loggerMiddleware(obj: { logger: Logger }) {
-  return createMiddleware(async (c, next) => {
+  return createMiddleware<Context>(async (c, next) => {
+    obj.logger = obj.logger.child({ "trace-id": c.var.requestId });
+    c.set("logger", obj.logger);
+
     const start = Date.now();
 
     const { method, url } = c.req;
@@ -13,10 +28,6 @@ export function loggerMiddleware(obj: { logger: Logger }) {
     const host = c.req.header("host") ?? "";
     const remoteAddress = info.remote.address ?? "";
     const remotePort = info.remote.port ?? 0;
-
-    obj.logger = obj.logger.child({
-      "trace-id": c.var.requestId,
-    });
 
     obj.logger.info(
       {
@@ -35,14 +46,16 @@ export function loggerMiddleware(obj: { logger: Logger }) {
 
     const responseTime = Date.now() - start;
 
-    obj.logger.info(
-      {
-        res: {
-          statusCode: c.res.status,
+    if (!c.error) {
+      obj.logger.info(
+        {
+          res: {
+            statusCode: c.res.status,
+          },
+          responseTime,
         },
-        responseTime,
-      },
-      "request completed",
-    );
+        "request completed",
+      );
+    }
   });
 }

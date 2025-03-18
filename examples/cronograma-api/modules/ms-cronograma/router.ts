@@ -73,6 +73,9 @@ const routerPrivate = new Hono()
   .get("/cronogramas", cacheMiddleware(), async (c) => {
     const cronogramas = await getCronogramasUseCase();
     return c.json(cronogramas);
+  })
+  .get("/error", async () => {
+    throw new HTTPException(400, { message: "Teste" });
   });
 
 export const router = new Hono().route("/", routerV1).route("/", routerPrivate);

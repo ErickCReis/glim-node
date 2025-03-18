@@ -1,7 +1,7 @@
-type TimeUnit = "s" | "m" | "h" | "d" | "w";
-type OutputFormat = "in_ms" | "in_s" | "in_m" | "in_h" | "in_d";
+type TimeUnit = "ms" | "s" | "m" | "h" | "d" | "w";
 
 const timeMultipliers = {
+  ms: 1,
   s: 1000,
   m: 60 * 1000,
   h: 60 * 60 * 1000,
@@ -12,47 +12,43 @@ const timeMultipliers = {
 // Create a type that represents a valid time string, e.g., "10s", "5m", etc.
 type ValidTimeString<T extends TimeUnit = TimeUnit> = `${number}${T}`;
 
-function outputFormatToUnit(timeMs: number, outputFormat: OutputFormat) {
-  switch (outputFormat) {
-    case "in_ms":
-      return timeMs;
-    case "in_s":
-      return timeMs / timeMultipliers.s;
-    case "in_m":
-      return timeMs / timeMultipliers.m;
-    case "in_h":
-      return timeMs / timeMultipliers.h;
-    case "in_d":
-      return timeMs / timeMultipliers.d;
-    default:
-      throw new Error(`Invalid output format: ${outputFormat}`);
-  }
+type OutputOptions = {
+  out?: TimeUnit;
+  round?: boolean;
+};
+
+function outputFormatToUnit(timeMs: number, options?: OutputOptions) {
+  const unit = options?.out ?? "s";
+  const round = options?.round ?? true;
+
+  const result = timeMs / timeMultipliers[unit];
+  return round ? Math.round(result) : result;
 }
 
 function _time<T extends TimeUnit>(
   timeString: ValidTimeString<T>,
-  outputFormat: OutputFormat = "in_s",
+  options: OutputOptions = { out: "s", round: true },
 ) {
   const value = Number.parseInt(timeString, 10);
-  const unit = timeString.slice(-1) as T;
+  const unit = timeString.replace(/\d+/, "") as T;
 
   if (Number.isNaN(value)) {
     throw new Error("Invalid numeric value in time string.");
   }
 
   const milliseconds = value * timeMultipliers[unit];
-  return outputFormatToUnit(milliseconds, outputFormat);
+  return outputFormatToUnit(milliseconds, options);
 }
 
 export const time = Object.assign(_time, {
-  now(outputFormat: OutputFormat = "in_s") {
+  now(options: OutputOptions = { out: "s", round: true }) {
     const now = Date.now();
-    return outputFormatToUnit(now, outputFormat);
+    return outputFormatToUnit(now, options);
   },
 
-  untilEndOfDay(outputFormat: OutputFormat = "in_s") {
+  untilEndOfDay(options: OutputOptions = { out: "s", round: true }) {
     const now = Date.now();
-    const result = now - (now % time("1d", "in_ms"));
-    return outputFormatToUnit(result, outputFormat);
+    const result = now - (now % time("1d", { out: "ms" }));
+    return outputFormatToUnit(result, options);
   },
 });
