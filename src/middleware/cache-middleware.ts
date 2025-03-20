@@ -14,7 +14,13 @@ export async function cacheDriverMiddleware() {
     return createMiddleware<Context>((_, next) => next());
   }
 
-  const driver = await createDriver("cache", "redis", "middleware");
+  const driver = await createDriver(
+    // @ts-expect-error
+    { namespace: "middleware" },
+    "default",
+    "cache",
+    "redis",
+  );
   return createMiddleware<Context>(async (c, next) => {
     c.set("driver", driver);
     await next();

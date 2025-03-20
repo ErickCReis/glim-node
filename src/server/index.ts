@@ -79,7 +79,7 @@ export async function start(modules: Array<GnModule>) {
     );
 
   for (const module of modules) {
-    if (!module._router) {
+    if (!module["~router"]) {
       console.error(`Nenhum router fornecido para ${module.namespace}`);
       process.exit(1);
     }
@@ -89,11 +89,11 @@ export async function start(modules: Array<GnModule>) {
         `/${module.namespace}/*`,
         loggerMiddleware(module),
         async (c, next) => {
-          module._cacheMiddlewareDriver = c.var.driver;
+          module["~context"] = c;
           await next();
         },
       )
-      .route("/", module._router);
+      .route("/", module["~router"]);
   }
 
   app.onError((_, c) => errorHandler(c));

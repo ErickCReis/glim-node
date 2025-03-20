@@ -45,7 +45,6 @@ const routerV1 = new Hono()
   )
   .get(
     "/cronogramas/:id",
-    cacheMiddlewareByUser(300),
     sValidator("param", z.object({ id: z.coerce.number() })),
     async (c) => {
       const { id } = c.req.valid("param");
@@ -53,6 +52,8 @@ const routerV1 = new Hono()
       if (!cronograma) {
         throw new HTTPException(404);
       }
+
+      mscronograma.httpMsAgendaBifrost.get({ path: "1" });
 
       return c.json(cronograma);
     },

@@ -11,6 +11,10 @@ export const mscronograma = await createModule("ms-cronograma", {
   storage: {
     construcao: "s3",
   },
+  http: {
+    msAgenda: "webservice",
+    msAgendaBifrost: "bifrost",
+  },
 });
 
 const hcWithType = mscronograma.loadRouter(router);

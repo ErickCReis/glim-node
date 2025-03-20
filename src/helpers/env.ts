@@ -22,6 +22,9 @@ export const coreEnv = z
       .transform((v) => appEnvOptionsMap[v]),
     APP_CORS_ORIGIN: z.string().optional().default("*"),
 
+    APP_CLIENT_KEY: z.string(),
+    APP_BIFROST_KEY: z.string(),
+
     CACHE_MIDDLEWARE: z.coerce.boolean().default(false),
     CACHE_MIDDLEWARE_KEY_EXPIRE: z.coerce.number().default(86400),
   })
@@ -88,4 +91,21 @@ export function getS3Env(namespace: string, storageName: string) {
     accessKeyId,
     secretAccessKey,
   };
+}
+
+export function getHttpEnv(namespace: string, httpName: string) {
+  const upperNamespace = namespace.replaceAll("-", "_").toUpperCase();
+  const name = `${upperNamespace}_${httpName.toUpperCase()}`;
+  const httpEnv = z
+    .object({
+      [`HTTP_${name}_URL`]: z
+        .string()
+        .transform((v) => (v.endsWith("/") ? v : `${v}/`)),
+      [`HTTP_${name}_TIMEOUT`]: z.coerce.number().default(5000),
+    })
+    .parse(process.env);
+
+  const baseUrl = httpEnv[`HTTP_${name}_URL`] as string;
+  const timeout = httpEnv[`HTTP_${name}_TIMEOUT`] as number;
+  return { baseUrl, timeout };
 }

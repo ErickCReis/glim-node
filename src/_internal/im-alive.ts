@@ -85,6 +85,19 @@ export function createImAlive(
       }
     }
 
+    if (resource === "all" || resource === "http") {
+      for (const [key, value] of Object.entries(resources.http ?? {})) {
+        const keyName = key.replace("http", "").toLocaleLowerCase();
+        const newKey = keyName === "" ? "" : `.${keyName}`;
+
+        checksPromises.push(
+          check(`http.${namespace}${newKey}`, () =>
+            value.get({ path: "/" }).then((r) => r.status === 200),
+          ),
+        );
+      }
+    }
+
     const results = await Promise.all(checksPromises);
     const res: Record<string, ImAlive> = {};
     for (const r of results) Object.assign(res, r);
