@@ -35,7 +35,6 @@ const routerV1 = new Hono()
 
       mscronograma.invalidateCacheMiddleware(client.private.cronogramas.$url());
       mscronograma.invalidateCacheMiddlewareByUser(
-        c.var.auth.id,
         client.v1.cronogramas.$url(),
         client.v1.cronogramas[":id"].$url({ param: { id: "*" } }),
       );

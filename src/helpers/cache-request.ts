@@ -83,25 +83,17 @@ export const cacheRequest = {
     });
   },
 
-  async invalidate(driver: Driver, ...patterns: [URL, ...URL[]]) {
+  async invalidate(driver: Driver, ...patterns: URL[]) {
     return _invalidate(driver, 0, patterns);
   },
 
-  async invalidateByUser(
-    driver: Driver,
-    userId: number,
-    ...patterns: [URL, ...URL[]]
-  ) {
+  async invalidateByUser(driver: Driver, userId: number, ...patterns: URL[]) {
     return _invalidate(driver, userId, patterns);
   },
 };
 
-async function _invalidate(
-  driver: Driver,
-  userId: number,
-  patterns: [URL, ...URL[]],
-) {
-  if (!driver) {
+async function _invalidate(driver: Driver, userId: number, patterns: URL[]) {
+  if (!driver || patterns.length === 0) {
     return;
   }
 

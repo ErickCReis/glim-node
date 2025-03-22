@@ -65,7 +65,7 @@ export type BaseModule<TNamespace extends string = string> = {
     ...patterns: DropFirst<Parameters<(typeof cacheRequest)["invalidate"]>>
   ) => Promise<void>;
   invalidateCacheMiddlewareByUser: (
-    ...args: DropFirst<Parameters<(typeof cacheRequest)["invalidateByUser"]>>
+    ...patterns: DropFirst<Parameters<(typeof cacheRequest)["invalidate"]>>
   ) => Promise<void>;
 };
 
@@ -131,9 +131,10 @@ export async function createModule<
       const driver = this["~context"]?.var.driver;
       await cacheRequest.invalidate(driver, ...patterns);
     },
-    async invalidateCacheMiddlewareByUser(...args) {
+    async invalidateCacheMiddlewareByUser(...patterns) {
       const driver = this["~context"]?.var.driver;
-      await cacheRequest.invalidateByUser(driver, ...args);
+      const userId = this["~context"]?.var.user.id;
+      await cacheRequest.invalidateByUser(driver, userId, ...patterns);
     },
   };
 
