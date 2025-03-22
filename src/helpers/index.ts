@@ -5,6 +5,8 @@ export {
   getPostgresEnv,
   getRedisEnv,
   getS3Env,
+  getSNSEnv,
+  getSNSTopicEnv,
   getHttpEnv,
 } from "@core/helpers/env";
 export { createLogger, type Logger } from "@core/helpers/logger";

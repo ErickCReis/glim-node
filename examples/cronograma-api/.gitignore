@@ -21,5 +21,6 @@ pnpm-debug.log*
 
 # misc
 .DS_Store
+localstack/volume
 
 dist

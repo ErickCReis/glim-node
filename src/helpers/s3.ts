@@ -27,9 +27,8 @@ export function createS3Client(config: {
       BucketRegion: config.region,
     });
 
-    const response = await s3Client.send(command);
-
-    return response.Buckets;
+    const { Buckets } = await s3Client.send(command);
+    return Buckets;
   }
 
   async function getObject(key: string) {
@@ -38,10 +37,8 @@ export function createS3Client(config: {
       Key: key,
     });
 
-    const response = await s3Client.send(command);
-    // Handle the response.  For example, stream the body:
-    // const bodyContents = await streamToString(response.Body);
-    return response;
+    const { Body } = await s3Client.send(command);
+    return Body?.transformToString();
   }
 
   return {

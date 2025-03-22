@@ -4,6 +4,8 @@ import {
   getPostgresEnv,
   getRedisEnv,
   getS3Env,
+  getSNSEnv,
+  getSNSTopicEnv,
 } from "@core/helpers/env";
 
 const featureConfig = {
@@ -29,6 +31,26 @@ const featureConfig = {
       return createS3Client(s3Env);
     },
   },
+  notification: {
+    async sns<Topics extends ReadonlyArray<string>>(
+      module: BaseModule,
+      key: string,
+      topics: Topics,
+    ) {
+      const snsEnv = getSNSEnv(module.namespace, key);
+
+      const topicsArns = topics?.reduce(
+        (acc, topic) => {
+          acc[topic] = getSNSTopicEnv(module.namespace, key, topic);
+          return acc;
+        },
+        {} as Record<string, string>,
+      );
+
+      const { createSNSClient } = await import("@core/helpers/sns");
+      return createSNSClient({ ...snsEnv, topics: topicsArns });
+    },
+  },
   http: {
     async webservice(module: BaseModule, key = "default") {
       const httpEnv = getHttpEnv(module.namespace, key);
@@ -44,7 +66,10 @@ const featureConfig = {
       });
     },
   },
-} as const;
+} as const satisfies Record<
+  string,
+  Record<string, (module: BaseModule, key: string, ...args: any[]) => any>
+>;
 
 export type FeatureConfig = typeof featureConfig;
 export type Feature = keyof FeatureConfig & {};
@@ -57,12 +82,12 @@ export type FeatureDriverType<
   // @ts-expect-error
 > = Awaited<ReturnType<FeatureConfig[F][D]>>;
 
-export function createDriver<F extends Feature, D extends FeatureDriver<F>>(
-  baseModule: BaseModule,
-  key: string,
-  feature: F,
-  driver: D,
-): Promise<FeatureDriverType<F, D>> {
+export function createDriver<
+  F extends Feature,
+  D extends FeatureDriver<F>,
   // @ts-expect-error
-  return featureConfig[feature][driver](baseModule, key);
+  P extends Parameters<FeatureConfig[F][D]>,
+>(feature: F, driver: D, ...args: P): Promise<FeatureDriverType<F, D>> {
+  // @ts-expect-error
+  return featureConfig[feature][driver](...args);
 }

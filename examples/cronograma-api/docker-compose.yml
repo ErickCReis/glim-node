@@ -7,7 +7,7 @@ services:
     depends_on:
       - db
       - cache
-      - s3
+      - localstack
     ports:
       - "3000:3000"
     volumes:
@@ -28,7 +28,15 @@ services:
     ports:
       - "6379:6379"
 
-  s3:
-    image: localstack/localstack:s3-latest
+  localstack:
+    image: localstack/localstack:latest
+    environment:
+      - SERVICES=s3,sns
+    env_file:
+      - .env
+    volumes:
+      - "./localstack/init.sh:/etc/localstack/init/ready.d/init.sh"
+      - "./localstack/volume:/var/lib/localstack"
+      - "/var/run/docker.sock:/var/run/docker.sock"
     ports:
       - "4566:4566"

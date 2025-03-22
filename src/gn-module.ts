@@ -8,7 +8,7 @@ import { type ImAliveFn, createImAlive } from "@core/_internal/im-alive";
 import { cacheRequest } from "@core/helpers/cache-request";
 import { coreEnv } from "@core/helpers/env";
 import { type Logger, createLogger } from "@core/helpers/logger";
-import type { Prettify } from "@core/helpers/types";
+import type { createSNSClient } from "@core/helpers/sns";
 import type { Context } from "hono";
 
 import { Hono } from "hono";
@@ -21,9 +21,18 @@ type ModuleConfigItem<
   Keys extends ReadonlyArray<string> | undefined,
 > = Keys extends undefined
   ? EmptyObject
-  : {
-      [K in Keys extends ReadonlyArray<infer U> ? U : never]: FeatureDriver<F>;
-    };
+  : F extends "notification"
+    ? {
+        [K in Keys extends ReadonlyArray<infer U> ? U : never]: {
+          driver: FeatureDriver<F>;
+          topics: Keys;
+        };
+      }
+    : {
+        [K in Keys extends ReadonlyArray<infer U>
+          ? U
+          : never]: FeatureDriver<F>;
+      };
 
 type ModuleConfigItemWithDefault<
   F extends Feature,
@@ -37,11 +46,13 @@ type ModuleConfig<
   CacheKeys extends ReadonlyArray<string> | undefined,
   StorageKeys extends ReadonlyArray<string> | undefined,
   HttpClientKeys extends ReadonlyArray<string> | undefined,
+  NotificationKeys extends ReadonlyArray<string> | undefined,
 > = {
   db?: ModuleConfigItemWithDefault<"db", DbKeys>;
   cache?: ModuleConfigItemWithDefault<"cache", CacheKeys>;
   storage?: ModuleConfigItemWithDefault<"storage", StorageKeys>;
   http?: ModuleConfigItem<"http", HttpClientKeys>;
+  notification?: ModuleConfigItem<"notification", NotificationKeys>;
 };
 
 type DropFirst<T extends unknown[]> = T extends [any, ...infer U] ? U : never;
@@ -75,7 +86,7 @@ type UnionToIntersection<U> = (U extends any ? (k: U) => void : never) extends (
   ? I
   : never;
 
-type ModuleInstance<T extends ModuleConfig<any, any, any, any>> = {
+type ModuleInstance<T extends ModuleConfig<any, any, any, any, any>> = {
   [K in keyof T & Feature]: (T[K] extends {
     default: infer Driver extends FeatureDriver<K>;
   }
@@ -97,19 +108,35 @@ export async function createModule<
   const CacheKeys extends ReadonlyArray<string> | undefined,
   const StorageKeys extends ReadonlyArray<string> | undefined,
   const HttpClientKeys extends ReadonlyArray<string> | undefined,
+  const NotificationKeys extends ReadonlyArray<string> | undefined,
   const Config extends ModuleConfig<
     DbKeys,
     CacheKeys,
     StorageKeys,
-    HttpClientKeys
+    HttpClientKeys,
+    NotificationKeys
   >,
 >(
   namespace: Namespace,
   config: Config,
 ): Promise<
-  Prettify<BaseModule<Namespace> & UnionToIntersection<ModuleInstance<Config>>>
+  BaseModule<Namespace> &
+    UnionToIntersection<ModuleInstance<Config>> & {
+      notification: Config["notification"] extends {
+        [K in keyof Config["notification"] as K]: {
+          driver: "sns";
+          topics: infer Topics extends ReadonlyArray<string>;
+        };
+      }
+        ? {
+            [K in keyof Config["notification"]]: ReturnType<
+              typeof createSNSClient<Topics>
+            >;
+          }
+        : never;
+    }
 > {
-  const result: BaseModule = {
+  const base: BaseModule = {
     namespace,
     env: coreEnv,
     logger: createLogger(namespace),
@@ -133,21 +160,44 @@ export async function createModule<
     },
     async invalidateCacheMiddlewareByUser(...patterns) {
       const driver = this["~context"]?.var.driver;
-      const userId = this["~context"]?.var.user.id;
+      const userId = this["~context"]?.var.auth.id;
       await cacheRequest.invalidateByUser(driver, userId, ...patterns);
     },
   };
 
   async function processFeature<F extends Feature>(feature: F) {
-    const featureResult: Record<string, FeatureDriverType<F>> = {};
+    const featureResult: Record<string, any> = {};
+
+    if (feature === "notification") {
+      const notificationConfig = config.notification;
+      if (!notificationConfig) {
+        return featureResult;
+      }
+
+      featureResult.notification = {};
+
+      for (const [name, config] of Object.entries(notificationConfig)) {
+        featureResult.notification[name] = await createDriver(
+          feature,
+          // @ts-expect-error
+          config.driver,
+          base,
+          "default",
+          config.topics,
+        );
+      }
+
+      return featureResult;
+    }
 
     const featureConfig = config[feature];
     if (featureConfig?.default) {
       featureResult[feature] = await createDriver(
-        result,
-        "default",
         feature,
         featureConfig.default as FeatureDriver<F>,
+        // @ts-expect-error
+        base,
+        "default",
       );
     }
 
@@ -156,10 +206,11 @@ export async function createModule<
       const capitalizedSubKey =
         subKey.charAt(0).toUpperCase() + subKey.slice(1);
       featureResult[`${feature}${capitalizedSubKey}`] = await createDriver(
-        result,
-        subKey,
         feature,
         driver,
+        // @ts-expect-error
+        base,
+        subKey,
       );
     }
 
@@ -169,10 +220,14 @@ export async function createModule<
   const dbResult = await processFeature("db");
   const cacheResult = await processFeature("cache");
   const storageResult = await processFeature("storage");
+  const notificationResult = await processFeature("notification");
+
+  console.log({ notificationResult });
+
   const httpResult = await processFeature("http");
 
   // @ts-expect-error
-  return Object.assign(result, {
+  return Object.assign(base, {
     imAlive: createImAlive(namespace, {
       db: dbResult,
       cache: cacheResult,
@@ -183,6 +238,7 @@ export async function createModule<
     ...dbResult,
     ...cacheResult,
     ...storageResult,
+    ...notificationResult,
     ...httpResult,
   });
 }
@@ -191,7 +247,7 @@ export type GnModule = Awaited<ReturnType<typeof createModule>>;
 
 function getExtraKeys<F extends Feature>(
   feature: F,
-  config: ModuleConfig<any, any, any, any> | undefined,
+  config: ModuleConfig<any, any, any, any, any> | undefined,
 ): Record<string, FeatureDriver<F>> {
   if (!config || !config[feature]) {
     return {};

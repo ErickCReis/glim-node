@@ -93,6 +93,50 @@ export function getS3Env(namespace: string, storageName: string) {
   };
 }
 
+export function getSNSEnv(namespace: string, notificationName: string) {
+  const name = `${namespace}_${notificationName}`
+    .replaceAll("-", "_")
+    .toUpperCase();
+  const snsEnv = z
+    .object({
+      [`NOTIFICATION_${name}_REGION`]: z.string(),
+      [`NOTIFICATION_${name}_ENDPOINT`]: z.string().optional(),
+      [`NOTIFICATION_${name}_ACCESS_KEY`]: z.string(),
+      [`NOTIFICATION_${name}_SECRET_KEY`]: z.string(),
+    })
+    .parse(process.env);
+
+  const region = snsEnv[`NOTIFICATION_${name}_REGION`] as string;
+  const endpoint = snsEnv[`NOTIFICATION_${name}_ENDPOINT`];
+  const accessKeyId = snsEnv[`NOTIFICATION_${name}_ACCESS_KEY`] as string;
+  const secretAccessKey = snsEnv[`NOTIFICATION_${name}_SECRET_KEY`] as string;
+
+  return {
+    region,
+    endpoint,
+    accessKeyId,
+    secretAccessKey,
+  };
+}
+
+export function getSNSTopicEnv(
+  namespace: string,
+  notificationName: string,
+  topicName: string,
+) {
+  const name = `${namespace}_${notificationName}`
+    .replaceAll("-", "_")
+    .toUpperCase();
+  const topic = topicName.replaceAll("-", "_").toUpperCase();
+  const snsEnv = z
+    .object({
+      [`NOTIFICATION_${name}_TOPIC_${topic}_ARN`]: z.string(),
+    })
+    .parse(process.env);
+
+  return snsEnv[`NOTIFICATION_${name}_TOPIC_${topic}_ARN`] as string;
+}
+
 export function getHttpEnv(namespace: string, httpName: string) {
   const upperNamespace = namespace.replaceAll("-", "_").toUpperCase();
   const name = `${upperNamespace}_${httpName.toUpperCase()}`;

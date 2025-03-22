@@ -15,6 +15,12 @@ export const mscronograma = await createModule("ms-cronograma", {
     msAgenda: "webservice",
     msAgendaBifrost: "bifrost",
   },
+  notification: {
+    default: {
+      driver: "sns",
+      topics: ["criacao-cronograma"],
+    },
+  },
 });
 
 const hcWithType = mscronograma.loadRouter(router);
