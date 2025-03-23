@@ -3,23 +3,23 @@ import { createModule } from "glim-node";
 
 export const mscronograma = await createModule("ms-cronograma", {
   db: {
-    default: "postgres",
+    type: "db.postgres",
   },
   cache: {
-    default: "redis",
+    type: "cache.redis",
   },
-  storage: {
-    construcao: "s3",
-  },
-  http: {
-    msAgenda: "webservice",
-    msAgendaBifrost: "bifrost",
+  storageConstrucao: {
+    type: "storage.s3",
   },
   notification: {
-    default: {
-      driver: "sns",
-      topics: ["criacao-cronograma"],
-    },
+    type: "notification.sns",
+    config: { topics: ["criacao-cronograma"] },
+  },
+  httpMsAgenda: {
+    type: "http.webservice",
+  },
+  httpMsAgendaBifrost: {
+    type: "http.bifrost",
   },
 });
 

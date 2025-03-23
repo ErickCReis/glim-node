@@ -2,7 +2,7 @@ import "dotenv/config";
 
 import { log } from "@clack/prompts";
 import { createTempDrizzleConfig, execCommand } from "@core/bin/utils";
-import { getPostgresEnv } from "@core/helpers/env.js";
+import { getPostgresEnv } from "@core/helpers/postgres";
 
 export async function runMigrations(moduleInput: string) {
   log.step("Aplicando migrations");

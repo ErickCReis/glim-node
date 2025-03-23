@@ -3,6 +3,7 @@ import {
   ListBucketsCommand,
   S3Client,
 } from "@aws-sdk/client-s3";
+import { z } from "zod";
 
 export type S3 = ReturnType<typeof createS3Client>;
 
@@ -44,5 +45,42 @@ export function createS3Client(config: {
   return {
     listBuckets,
     getObject,
+  };
+}
+
+export function getS3Env(namespace: string, alias = "default") {
+  const aliasWithoutPrefix = alias
+    .toLocaleLowerCase()
+    .replaceAll(/storage[-_]?/g, "");
+
+  const key = (
+    alias === "default"
+      ? `STORAGE_${namespace}`
+      : `STORAGE_${namespace}_${aliasWithoutPrefix}`
+  )
+    .toUpperCase()
+    .replaceAll("-", "_");
+  const s3Env = z
+    .object({
+      [`${key}_REGION`]: z.string(),
+      [`${key}_BUCKET`]: z.string(),
+      [`${key}_ENDPOINT`]: z.string().optional(),
+      [`${key}_ACCESS_KEY`]: z.string(),
+      [`${key}_SECRET_KEY`]: z.string(),
+    })
+    .parse(process.env);
+
+  const region = s3Env[`${key}_REGION`] as string;
+  const bucket = s3Env[`${key}_BUCKET`] as string;
+  const endpoint = s3Env[`${key}_ENDPOINT`];
+  const accessKeyId = s3Env[`${key}_ACCESS_KEY`] as string;
+  const secretAccessKey = s3Env[`${key}_SECRET_KEY`] as string;
+
+  return {
+    region,
+    bucket,
+    endpoint,
+    accessKeyId,
+    secretAccessKey,
   };
 }

@@ -1,8 +1,8 @@
-import type { FeatureDriverType } from "@core/_internal/features";
+import type { FeatureReturn } from "@core/_internal/features";
 import { md5 } from "@core/helpers/crypto";
 import { time } from "@core/helpers/time";
 
-type Driver = FeatureDriverType<"cache"> | undefined;
+type Driver = FeatureReturn<"cache.redis"> | undefined;
 
 export const cacheRequest = {
   NAMESPACE: "CACHE_REQUEST",

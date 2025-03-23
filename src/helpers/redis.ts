@@ -1,4 +1,5 @@
 import { Redis as IORedis, type RedisOptions } from "ioredis";
+import { z } from "zod";
 
 class Redis extends IORedis {
   #runningInDb: Promise<any> | null = null;
@@ -37,4 +38,23 @@ export type { Redis };
 
 export function createRedisClient(options: RedisOptions) {
   return new Redis(options);
+}
+
+export function getRedisEnv(namespace: string, alias = "default") {
+  const key = (
+    alias === "default" ? `CACHE_${namespace}` : `CACHE_${namespace}_${alias}`
+  )
+    .toUpperCase()
+    .replaceAll("-", "_");
+  const redisEnv = z
+    .object({
+      [`${key}_HOST`]: z.string(),
+      [`${key}_PORT`]: z.coerce.number(),
+    })
+    .parse(process.env);
+
+  const host = redisEnv[`${key}_HOST`] as string;
+  const port = redisEnv[`${key}_PORT`] as number | undefined;
+
+  return { host, port };
 }

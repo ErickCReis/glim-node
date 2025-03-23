@@ -2,10 +2,9 @@ import fs from "node:fs";
 import { join } from "node:path";
 import type {
   Feature,
-  FeatureConfig,
-  FeatureDriverType,
+  FeatureImAlive,
+  FeatureType,
 } from "@core/_internal/features";
-
 export type ImAlive = {
   status: "alive" | "dead";
   latency: number;
@@ -31,11 +30,9 @@ async function check(key: string, fn: () => Promise<boolean>) {
 
 export function createImAlive(
   namespace: string,
-  resources: {
-    [K in keyof FeatureConfig]?: Record<string, FeatureDriverType<K>>;
-  },
+  features: { [key: string]: FeatureImAlive },
 ) {
-  return async (resource: Feature | "all" = "all", force = false) => {
+  return async (resource: FeatureType | "all" = "all", force = false) => {
     const logFileName = `im-alive${resource !== "all" ? `.${resource}` : ""}.log`;
     const logPath = join(process.cwd(), logFileName);
 
@@ -46,53 +43,80 @@ export function createImAlive(
 
     const checksPromises = [];
 
-    if (resource === "all" || resource === "db") {
-      for (const [key, value] of Object.entries(resources.db ?? {})) {
-        const keyName = key.replace("db", "").toLocaleLowerCase();
-        const newKey = keyName === "" ? "" : `.${keyName}`;
-
+    for (const [key, value] of Object.entries(features)) {
+      if (
+        (resource === "all" || resource === "db") &&
+        value.type === "db.postgres"
+      ) {
+        const alias = key.toLocaleLowerCase().replaceAll(/db[-_]?/g, "");
+        const newKey = alias === "" ? "" : `.${alias}`;
         checksPromises.push(
           check(`db.${namespace}${newKey}`, () =>
-            value.execute("SELECT 1").then((r) => r.rowCount === 1),
+            value.driver.execute("SELECT 1").then((r) => r.rowCount === 1),
           ),
         );
       }
-    }
 
-    if (resource === "all" || resource === "cache") {
-      for (const [key, value] of Object.entries(resources.cache ?? {})) {
-        const keyName = key.replace("cache", "").toLocaleLowerCase();
-        const newKey = keyName === "" ? "" : `.${keyName}`;
+      if (
+        (resource === "all" || resource === "cache") &&
+        value.type === "cache.redis"
+      ) {
+        const alias = key.toLocaleLowerCase().replaceAll(/cache[-_]?/g, "");
+        const newKey = alias === "" ? "" : `.${alias}`;
 
         checksPromises.push(
           check(`cache.${namespace}${newKey}`, () =>
-            value.ping().then((r) => r === "PONG"),
+            value.driver.ping().then((r) => r === "PONG"),
           ),
         );
       }
-    }
 
-    if (resource === "all" || resource === "storage") {
-      for (const [key, value] of Object.entries(resources.storage ?? {})) {
-        const keyName = key.replace("storage", "").toLocaleLowerCase();
-        const newKey = keyName === "" ? "" : `.${keyName}`;
+      if (
+        (resource === "all" || resource === "storage") &&
+        value.type === "storage.s3"
+      ) {
+        const alias = key.toLocaleLowerCase().replaceAll(/storage[-_]?/g, "");
+        const newKey = alias === "" ? "" : `.${alias}`;
 
         checksPromises.push(
           check(`storage.${namespace}${newKey}`, () =>
-            value.listBuckets().then(() => true),
+            value.driver.listBuckets().then(() => true),
           ),
         );
       }
-    }
 
-    if (resource === "all" || resource === "http") {
-      for (const [key, value] of Object.entries(resources.http ?? {})) {
-        const keyName = key.replace("http", "").toLocaleLowerCase();
-        const newKey = keyName === "" ? "" : `.${keyName}`;
+      if (
+        (resource === "all" || resource === "notification") &&
+        value.type === "notification.sns"
+      ) {
+        const alias = key
+          .toLocaleLowerCase()
+          .replaceAll(/notification[-_]?/g, "");
+        const newKey = alias === "" ? "" : `.${alias}`;
+
+        checksPromises.push(
+          check(`notification.${namespace}${newKey}`, () =>
+            value.driver
+              .listTopics()
+              .then((r) => (r.Topics?.length ?? 0) > 0)
+              .catch((e) => {
+                console.log(e);
+                return false;
+              }),
+          ),
+        );
+      }
+
+      if (
+        (resource === "all" || resource === "http") &&
+        (value.type === "http.webservice" || value.type === "http.bifrost")
+      ) {
+        const alias = key.toLocaleLowerCase().replaceAll(/http[-_]?/g, "");
+        const newKey = alias === "" ? "" : `.${alias}`;
 
         checksPromises.push(
           check(`http.${namespace}${newKey}`, () =>
-            value.get({ path: "/" }).then((r) => r.status === 200),
+            value.driver.get({ path: "/" }).then((r) => r.status === 200),
           ),
         );
       }

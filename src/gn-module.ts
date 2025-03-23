@@ -1,59 +1,18 @@
 import {
   type Feature,
-  type FeatureDriver,
-  type FeatureDriverType,
-  createDriver,
+  type FeatureConfig,
+  type FeatureImAlive,
+  type FeatureReturn,
+  createFeature,
 } from "@core/_internal/features";
 import { type ImAliveFn, createImAlive } from "@core/_internal/im-alive";
 import { cacheRequest } from "@core/helpers/cache-request";
 import { coreEnv } from "@core/helpers/env";
 import { type Logger, createLogger } from "@core/helpers/logger";
-import type { createSNSClient } from "@core/helpers/sns";
 import type { Context } from "hono";
 
 import { Hono } from "hono";
 import { hc } from "hono/client";
-
-type EmptyObject = Record<string, never>;
-
-type ModuleConfigItem<
-  F extends Feature,
-  Keys extends ReadonlyArray<string> | undefined,
-> = Keys extends undefined
-  ? EmptyObject
-  : F extends "notification"
-    ? {
-        [K in Keys extends ReadonlyArray<infer U> ? U : never]: {
-          driver: FeatureDriver<F>;
-          topics: Keys;
-        };
-      }
-    : {
-        [K in Keys extends ReadonlyArray<infer U>
-          ? U
-          : never]: FeatureDriver<F>;
-      };
-
-type ModuleConfigItemWithDefault<
-  F extends Feature,
-  Keys extends ReadonlyArray<string> | undefined,
-> = {
-  default?: FeatureDriver<F>;
-} & ModuleConfigItem<F, Keys>;
-
-type ModuleConfig<
-  DbKeys extends ReadonlyArray<string> | undefined,
-  CacheKeys extends ReadonlyArray<string> | undefined,
-  StorageKeys extends ReadonlyArray<string> | undefined,
-  HttpClientKeys extends ReadonlyArray<string> | undefined,
-  NotificationKeys extends ReadonlyArray<string> | undefined,
-> = {
-  db?: ModuleConfigItemWithDefault<"db", DbKeys>;
-  cache?: ModuleConfigItemWithDefault<"cache", CacheKeys>;
-  storage?: ModuleConfigItemWithDefault<"storage", StorageKeys>;
-  http?: ModuleConfigItem<"http", HttpClientKeys>;
-  notification?: ModuleConfigItem<"notification", NotificationKeys>;
-};
 
 type DropFirst<T extends unknown[]> = T extends [any, ...infer U] ? U : never;
 
@@ -80,62 +39,32 @@ export type BaseModule<TNamespace extends string = string> = {
   ) => Promise<void>;
 };
 
-type UnionToIntersection<U> = (U extends any ? (k: U) => void : never) extends (
-  k: infer I,
-) => void
-  ? I
+// Type for the module configuration
+type ModuleConfig = {
+  [key: string]: FeatureConfig;
+} & {
+  [K in keyof BaseModule]?: never;
+};
+
+// Get the return type for a specific feature config
+type ConfigReturnType<T extends FeatureConfig> = T extends {
+  type: infer K extends Feature;
+}
+  ? FeatureReturn<K>
   : never;
 
-type ModuleInstance<T extends ModuleConfig<any, any, any, any, any>> = {
-  [K in keyof T & Feature]: (T[K] extends {
-    default: infer Driver extends FeatureDriver<K>;
-  }
-    ? { [P in K]: FeatureDriverType<K, Driver> }
-    : EmptyObject) & {
-    [SubKey in keyof T[K] & string as SubKey extends "default"
-      ? never
-      : `${K}${Capitalize<SubKey>}`]: T[K] extends Record<SubKey, infer Driver>
-      ? Driver extends FeatureDriver<K>
-        ? FeatureDriverType<K, Driver>
-        : never
-      : never;
-  };
-}[keyof T & Feature];
+// Type for the result after processing
+type ModuleResult<T extends ModuleConfig> = {
+  [K in keyof T]: ConfigReturnType<T[K]>;
+};
 
 export async function createModule<
   const Namespace extends string,
-  const DbKeys extends ReadonlyArray<string> | undefined,
-  const CacheKeys extends ReadonlyArray<string> | undefined,
-  const StorageKeys extends ReadonlyArray<string> | undefined,
-  const HttpClientKeys extends ReadonlyArray<string> | undefined,
-  const NotificationKeys extends ReadonlyArray<string> | undefined,
-  const Config extends ModuleConfig<
-    DbKeys,
-    CacheKeys,
-    StorageKeys,
-    HttpClientKeys,
-    NotificationKeys
-  >,
+  const Config extends ModuleConfig,
 >(
   namespace: Namespace,
   config: Config,
-): Promise<
-  BaseModule<Namespace> &
-    UnionToIntersection<ModuleInstance<Config>> & {
-      notification: Config["notification"] extends {
-        [K in keyof Config["notification"] as K]: {
-          driver: "sns";
-          topics: infer Topics extends ReadonlyArray<string>;
-        };
-      }
-        ? {
-            [K in keyof Config["notification"]]: ReturnType<
-              typeof createSNSClient<Topics>
-            >;
-          }
-        : never;
-    }
-> {
+): Promise<BaseModule<Namespace> & ModuleResult<Config>> {
   const base: BaseModule = {
     namespace,
     env: coreEnv,
@@ -165,99 +94,40 @@ export async function createModule<
     },
   };
 
-  async function processFeature<F extends Feature>(feature: F) {
-    const featureResult: Record<string, any> = {};
+  const features = {} as Record<string, FeatureReturn<Feature>>;
 
-    if (feature === "notification") {
-      const notificationConfig = config.notification;
-      if (!notificationConfig) {
-        return featureResult;
-      }
-
-      featureResult.notification = {};
-
-      for (const [name, config] of Object.entries(notificationConfig)) {
-        featureResult.notification[name] = await createDriver(
-          feature,
-          // @ts-expect-error
-          config.driver,
-          base,
-          "default",
-          config.topics,
-        );
-      }
-
-      return featureResult;
-    }
-
-    const featureConfig = config[feature];
-    if (featureConfig?.default) {
-      featureResult[feature] = await createDriver(
-        feature,
-        featureConfig.default as FeatureDriver<F>,
-        // @ts-expect-error
-        base,
-        "default",
-      );
-    }
-
-    const extraKeys = getExtraKeys(feature, config);
-    for (const [subKey, driver] of Object.entries(extraKeys)) {
-      const capitalizedSubKey =
-        subKey.charAt(0).toUpperCase() + subKey.slice(1);
-      featureResult[`${feature}${capitalizedSubKey}`] = await createDriver(
-        feature,
-        driver,
-        // @ts-expect-error
-        base,
-        subKey,
-      );
-    }
-
-    return featureResult;
+  for (const [key, value] of Object.entries(config)) {
+    const [featureType] = value.type.split(".");
+    const alias = key === featureType ? "default" : key;
+    features[key] = await createFeature(
+      value.type,
+      // @ts-expect-error
+      value.config,
+      base,
+      alias,
+    );
   }
-
-  const dbResult = await processFeature("db");
-  const cacheResult = await processFeature("cache");
-  const storageResult = await processFeature("storage");
-  const notificationResult = await processFeature("notification");
-
-  console.log({ notificationResult });
-
-  const httpResult = await processFeature("http");
 
   // @ts-expect-error
   return Object.assign(base, {
-    imAlive: createImAlive(namespace, {
-      db: dbResult,
-      cache: cacheResult,
-      storage: storageResult,
-      http: httpResult,
-    }),
+    imAlive: createImAlive(
+      namespace,
+      Object.entries(config).reduce(
+        (acc, [key, value]) => {
+          acc[key] = {
+            type: value.type,
+            // @ts-expect-error
+            driver: features[key],
+          };
 
-    ...dbResult,
-    ...cacheResult,
-    ...storageResult,
-    ...notificationResult,
-    ...httpResult,
+          return acc;
+        },
+        {} as Record<string, FeatureImAlive>,
+      ),
+    ),
+
+    ...features,
   });
 }
 
 export type GnModule = Awaited<ReturnType<typeof createModule>>;
-
-function getExtraKeys<F extends Feature>(
-  feature: F,
-  config: ModuleConfig<any, any, any, any, any> | undefined,
-): Record<string, FeatureDriver<F>> {
-  if (!config || !config[feature]) {
-    return {};
-  }
-
-  const extraKeys: Record<string, FeatureDriver<F>> = {};
-  for (const [key, value] of Object.entries(config[feature])) {
-    if (key !== "default") {
-      extraKeys[key] = value as FeatureDriver<F>;
-    }
-  }
-  return extraKeys;
-}

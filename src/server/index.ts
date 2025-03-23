@@ -36,6 +36,7 @@ export async function start(modules: Array<GnModule>) {
         await next();
       },
     )
+    .get("/", (c) => c.text("Hello world!"))
     .get(
       "/im-alive/:resource?",
       loggerMiddleware({ logger: mainLogger }),

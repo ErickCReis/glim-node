@@ -39,7 +39,7 @@ const routerV1 = new Hono()
         client.v1.cronogramas[":id"].$url({ param: { id: "*" } }),
       );
 
-      mscronograma.notification.default.publish(
+      mscronograma.notification.publish(
         "criacao-cronograma",
         JSON.stringify(cronograma),
       );

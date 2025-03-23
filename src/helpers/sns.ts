@@ -1,4 +1,9 @@
-import { PublishCommand, SNSClient } from "@aws-sdk/client-sns";
+import {
+  ListTopicsCommand,
+  PublishCommand,
+  SNSClient,
+} from "@aws-sdk/client-sns";
+import { z } from "zod";
 
 export type SNS = ReturnType<typeof createSNSClient>;
 
@@ -22,6 +27,13 @@ export function createSNSClient<
     },
   });
 
+  const listTopics = async () => {
+    const response = await snsClient.send(new ListTopicsCommand({}));
+    console.log(response, config);
+
+    return response;
+  };
+
   async function publish(topic: keyof typeof config.topics, message: string) {
     const command = new PublishCommand({
       TopicArn: config.topics[topic],
@@ -33,5 +45,62 @@ export function createSNSClient<
 
   return {
     publish,
+    listTopics,
+  };
+}
+
+export function getSNSEnv(
+  namespace: string,
+  alias = "default",
+  topicNames: string[] = [],
+) {
+  const key = (
+    alias === "default"
+      ? `NOTIFICATION_${namespace}`
+      : `NOTIFICATION_${namespace}_${alias}`
+  )
+    .toUpperCase()
+    .replaceAll("-", "_");
+
+  const snsEnv = z
+    .object({
+      [`${key}_REGION`]: z.string(),
+      [`${key}_ENDPOINT`]: z.string().optional(),
+      [`${key}_ACCESS_KEY`]: z.string(),
+      [`${key}_SECRET_KEY`]: z.string(),
+
+      ...topicNames.reduce(
+        (acc, topic) => {
+          acc[`${key}_TOPIC_${topic.replaceAll("-", "_").toUpperCase()}_ARN`] =
+            z.string();
+          return acc;
+        },
+        {} as Record<string, z.ZodTypeAny>,
+      ),
+    })
+    .parse(process.env);
+
+  console.log(snsEnv);
+
+  const region = snsEnv[`${key}_REGION`] as string;
+  const endpoint = snsEnv[`${key}_ENDPOINT`];
+  const accessKeyId = snsEnv[`${key}_ACCESS_KEY`] as string;
+  const secretAccessKey = snsEnv[`${key}_SECRET_KEY`] as string;
+  const topics = topicNames.reduce(
+    (acc, topic) => {
+      acc[topic] = snsEnv[
+        `${key}_TOPIC_${topic.replaceAll("-", "_").toUpperCase()}_ARN`
+      ] as string;
+      return acc;
+    },
+    {} as Record<string, string>,
+  );
+
+  return {
+    region,
+    endpoint,
+    accessKeyId,
+    secretAccessKey,
+    topics,
   };
 }

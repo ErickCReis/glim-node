@@ -1,4 +1,4 @@
-import { type FeatureDriverType, createDriver } from "@core/_internal/features";
+import { type FeatureReturn, createFeature } from "@core/_internal/features";
 import { cacheRequest, coreEnv, time } from "@core/helpers";
 import type { Auth } from "@core/middleware/auth-middleware";
 import { createMiddleware } from "hono/factory";
@@ -6,7 +6,7 @@ import { createMiddleware } from "hono/factory";
 const CACHE_MIDDLEWARE_HEADER = "x-cache-middleware";
 
 type Context = {
-  Variables: { driver: FeatureDriverType<"cache"> | undefined };
+  Variables: { driver: FeatureReturn<"cache.redis"> | undefined };
 };
 
 export async function cacheDriverMiddleware() {
@@ -14,9 +14,9 @@ export async function cacheDriverMiddleware() {
     return createMiddleware<Context>((_, next) => next());
   }
 
-  const driver = await createDriver(
-    "cache",
-    "redis",
+  const driver = await createFeature(
+    "cache.redis",
+    {},
     // @ts-expect-error
     { namespace: "middleware" },
     "default",
@@ -44,7 +44,7 @@ function _cacheMiddleware<ByUser extends boolean = false>({
 }) {
   return createMiddleware<{
     Variables: {
-      driver: FeatureDriverType<"cache">;
+      driver: FeatureReturn<"cache.redis">;
     } & (ByUser extends true
       ? {
           auth: Auth;

@@ -2,6 +2,7 @@ import { sha1 } from "@core/helpers/crypto";
 import { coreEnv } from "@core/helpers/env";
 import { time as timeHelper } from "@core/helpers/time";
 import type { Prettify } from "@core/helpers/types";
+import { z } from "zod";
 
 type Method = "GET" | "POST" | "PUT" | "DELETE";
 type Options = {
@@ -31,19 +32,6 @@ export function createBifrostClient(
   });
 }
 
-function _bifrostHeaders(auth: string) {
-  const time = timeHelper.now({ out: "s" }).toString();
-  const client = coreEnv.APP_CLIENT_KEY;
-  const key = coreEnv.APP_BIFROST_KEY;
-
-  return {
-    "x-time": time,
-    "x-client": client,
-    "x-auth": auth,
-    "x-bifrost": sha1(`${auth}.${client}.${time}.${key}`),
-  };
-}
-
 export function createHttpClient({
   baseUrl,
   timeout,
@@ -67,5 +55,46 @@ export function createHttpClient({
     post: (options: Options) => _request("POST", options),
     put: (options: Options) => _request("PUT", options),
     delete: (options: Options) => _request("DELETE", options),
+  };
+}
+
+export function getHttpEnv(namespace: string, alias = "default") {
+  const aliasWithoutPrefix = alias
+    .toLocaleLowerCase()
+    .replaceAll(/http[-_]?/g, "");
+
+  const key = (
+    alias === "default"
+      ? `HTTP_${namespace}`
+      : `HTTP_${namespace}_${aliasWithoutPrefix}`
+  )
+    .toUpperCase()
+    .replaceAll("-", "_");
+
+  const httpEnv = z
+    .object({
+      [`${key}_URL`]: z
+        .string()
+        .nonempty()
+        .transform((v) => (v.endsWith("/") ? v : `${v}/`)),
+      [`${key}_TIMEOUT`]: z.coerce.number().default(5000),
+    })
+    .parse(process.env);
+
+  const baseUrl = httpEnv[`${key}_URL`] as string;
+  const timeout = httpEnv[`${key}_TIMEOUT`] as number;
+  return { baseUrl, timeout };
+}
+
+function _bifrostHeaders(auth: string) {
+  const time = timeHelper.now({ out: "s" }).toString();
+  const client = coreEnv.APP_CLIENT_KEY;
+  const key = coreEnv.APP_BIFROST_KEY;
+
+  return {
+    "x-time": time,
+    "x-client": client,
+    "x-auth": auth,
+    "x-bifrost": sha1(`${auth}.${client}.${time}.${key}`),
   };
 }
