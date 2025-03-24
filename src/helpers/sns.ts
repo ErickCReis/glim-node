@@ -29,8 +29,6 @@ export function createSNSClient<
 
   const listTopics = async () => {
     const response = await snsClient.send(new ListTopicsCommand({}));
-    console.log(response, config);
-
     return response;
   };
 
@@ -79,8 +77,6 @@ export function getSNSEnv(
       ),
     })
     .parse(process.env);
-
-  console.log(snsEnv);
 
   const region = snsEnv[`${key}_REGION`] as string;
   const endpoint = snsEnv[`${key}_ENDPOINT`];

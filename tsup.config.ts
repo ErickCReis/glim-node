@@ -36,6 +36,12 @@ async function copyDirectory(
       continue;
     }
 
+    if (entry.name === ".gitignore") {
+      const newTargetPath = path.join(target, "_gitignore");
+      await fs.copyFile(sourcePath, newTargetPath);
+      continue;
+    }
+
     if (entry.name === "docker-compose.yml") {
       const data = await fs.readFile(sourcePath, "utf-8");
       const yml = YAML.parse(data);
@@ -43,8 +49,8 @@ async function copyDirectory(
       yml.services.app.working_dir = "/app";
       yml.services.app.volumes = [
         ".:/app",
-        "/app/.pnpm-store",
-        "/app/node_modules",
+        "app_data:/app/.pnpm-store",
+        "app_data:/app/node_modules",
       ];
 
       await fs.writeFile(targetPath, YAML.stringify(yml));

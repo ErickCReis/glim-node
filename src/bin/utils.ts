@@ -1,4 +1,4 @@
-import { spawn } from "node:child_process";
+import { type SpawnOptions, spawn } from "node:child_process";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
@@ -19,10 +19,15 @@ export default defineConfig(${JSON.stringify(config)});
   return tempFilePath;
 }
 
-export async function execCommand(command: string, args: string[]) {
+export async function execCommand(
+  command: string,
+  args: string[],
+  options: SpawnOptions = {},
+) {
   return new Promise<void>((resolve, reject) => {
     const child = spawn(command, args, {
       stdio: "inherit",
+      ...options,
     });
 
     child.on("error", reject);

@@ -96,13 +96,7 @@ export function createImAlive(
 
         checksPromises.push(
           check(`notification.${namespace}${newKey}`, () =>
-            value.driver
-              .listTopics()
-              .then((r) => (r.Topics?.length ?? 0) > 0)
-              .catch((e) => {
-                console.log(e);
-                return false;
-              }),
+            value.driver.listTopics().then((r) => (r.Topics?.length ?? 0) > 0),
           ),
         );
       }

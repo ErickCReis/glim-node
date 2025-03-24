@@ -1,7 +1,9 @@
 services:
   app:
-    image: node:22-alpine
+    image: node:22-bullseye
     working_dir: /usr/src/app/examples/cronograma-api
+    environment:
+      - NPM_TOKEN=${NPM_TOKEN}
     depends_on:
       - db
       - cache
@@ -10,9 +12,9 @@ services:
       - "3000:3000"
     volumes:
       - ../..:/usr/src/app
-      - /usr/src/app/examples/cronograma-api/node_modules
-      - /usr/src/app/.pnpm-store
-    command: sh -c "npm i -g pnpm && pnpm i && pnpm dev"
+      - app_data:/usr/src/app/examples/cronograma-api/node_modules
+      - app_data:/usr/src/app/.pnpm-store
+    command: sh ./docker/init-app.sh
 
   db:
     image: postgres:15
@@ -20,6 +22,8 @@ services:
       - "5432:5432"
     environment:
       - POSTGRES_PASSWORD=${DB_MS_CRONOGRAMA_PASSWORD}
+    volumes:
+      - db_data:/var/lib/postgresql/data
   
   cache:
     image: redis:7
@@ -33,8 +37,13 @@ services:
     env_file:
       - .env
     volumes:
-      - "./localstack/init.sh:/etc/localstack/init/ready.d/init.sh"
-      - "./localstack/volume:/var/lib/localstack"
+      - "./docker/init-localstack.sh:/etc/localstack/init/ready.d/init.sh"
       - "/var/run/docker.sock:/var/run/docker.sock"
+      - "localstack_data:/var/lib/localstack"
     ports:
       - "4566:4566"
+
+volumes:
+  app_data:
+  db_data:
+  localstack_data:
