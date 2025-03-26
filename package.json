@@ -39,7 +39,7 @@
     "build": "tsup",
     "check": "biome check --write . && tsc --noEmit",
     "dev": "tsup --watch",
-    "publish": "dotenv pnpm publish"
+    "release": "dotenv pnpm publish"
   },
   "dependencies": {
     "@hono/node-server": "^1.14.0",
