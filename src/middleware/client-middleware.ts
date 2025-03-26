@@ -6,11 +6,6 @@ const CLIENT_HEADER = "x-client";
 type Client = {
   id: number;
   key: string;
-  acl: boolean;
-  secret: string;
-  system_id: number;
-  platform_id: number;
-  session_group_id: number;
   version: string;
 };
 

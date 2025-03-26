@@ -7,10 +7,6 @@ export type Auth = {
   id: number;
   name: string;
   nickname: string;
-  sigue_aluno_id: number;
-  sigue_professor_id: number;
-  sigue_usuario_id: number;
-  questoes_usuario_id: number;
 };
 
 type Context = {

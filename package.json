@@ -1,6 +1,10 @@
 {
   "name": "@ErickCReis/glim-node",
   "version": "0.0.5",
+  "engines": {
+    "node": ">=22.0.0",
+    "pnpm": ">=10.0.0"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/ErickCReis/glim-node.git"
@@ -37,8 +41,8 @@
     "dev": "tsup --watch"
   },
   "dependencies": {
-    "@hono/node-server": "^1.13.8",
-    "hono": "^4.7.2",
+    "@hono/node-server": "^1.14.0",
+    "hono": "^4.7.5",
     "pino": "^9.6.0"
   },
   "peerDependencies": {
@@ -72,17 +76,17 @@
     }
   },
   "devDependencies": {
-    "@aws-sdk/client-s3": "^3.758.0",
-    "@aws-sdk/client-sns": "^3.772.0",
+    "@aws-sdk/client-s3": "^3.775.0",
+    "@aws-sdk/client-sns": "^3.775.0",
     "@biomejs/biome": "1.9.4",
     "@clack/prompts": "^0.10.0",
-    "@types/node": "^22.13.10",
+    "@types/node": "^22.13.13",
     "@types/pg": "^8.11.11",
     "dotenv": "^16.4.7",
     "drizzle-kit": "^0.30.5",
-    "drizzle-orm": "^0.40.0",
+    "drizzle-orm": "^0.41.0",
     "ioredis": "^5.5.0",
-    "pg": "^8.13.3",
+    "pg": "^8.14.1",
     "tsup": "^8.4.0",
     "typescript": "^5.8.2",
     "yaml": "^2.7.0",
