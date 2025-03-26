@@ -1,11 +1,11 @@
 {
-  "id": "8c55b435-68bb-47ff-8655-6bc7390d8e12",
+  "id": "6b831856-013a-4646-98de-2feb79a79672",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
-    "public.cronogramas": {
-      "name": "cronogramas",
+    "public.tasks": {
+      "name": "tasks",
       "schema": "",
       "columns": {
         "id": {

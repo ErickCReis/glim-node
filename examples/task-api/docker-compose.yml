@@ -1,7 +1,7 @@
 services:
   app:
     image: node:22-bullseye
-    working_dir: /usr/src/app/examples/cronograma-api
+    working_dir: /usr/src/app/examples/task-api
     environment:
       - NPM_TOKEN=${NPM_TOKEN}
     depends_on:
@@ -12,7 +12,7 @@ services:
       - "3000:3000"
     volumes:
       - ../..:/usr/src/app
-      - app_data:/usr/src/app/examples/cronograma-api/node_modules
+      - app_data:/usr/src/app/examples/task-api/node_modules
       - app_data:/usr/src/app/.pnpm-store
     command: sh ./docker/init-app.sh
 
@@ -21,10 +21,10 @@ services:
     ports:
       - "5432:5432"
     environment:
-      - POSTGRES_PASSWORD=${DB_MS_CRONOGRAMA_PASSWORD}
+      - POSTGRES_PASSWORD=${DB_MS_TASK_PASSWORD}
     volumes:
       - db_data:/var/lib/postgresql/data
-  
+
   cache:
     image: redis:7
     ports:

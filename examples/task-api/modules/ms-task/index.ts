@@ -1,7 +1,7 @@
-import { router } from "@ms-cronograma/router";
+import { router } from "@ms-task/router";
 import { createModule } from "glim-node";
 
-export const mscronograma = await createModule("ms-cronograma", {
+export const mstask = await createModule("ms-task", {
   db: {
     type: "db.postgres",
   },
@@ -13,15 +13,12 @@ export const mscronograma = await createModule("ms-cronograma", {
   },
   notification: {
     type: "notification.sns",
-    config: { topics: ["criacao-cronograma"] },
+    config: { topics: ["criacao-task"] },
   },
-  httpMsAgenda: {
+  httpMsStatistic: {
     type: "http.webservice",
-  },
-  httpMsAgendaBifrost: {
-    type: "http.bifrost",
   },
 });
 
-const hcWithType = mscronograma.loadRouter(router);
+const hcWithType = mstask.loadRouter(router);
 export const client = hcWithType("http://localhost:3000");

@@ -1,8 +1,8 @@
+import { log, tasks } from "@clack/prompts";
+import { execCommand } from "@core/bin/utils";
 import { existsSync } from "node:fs";
 import fs from "node:fs/promises";
 import path from "node:path";
-import { log, tasks } from "@clack/prompts";
-import { execCommand } from "@core/bin/utils";
 
 export async function createProject(projectName: string) {
   log.step("Criando novo projeto");
@@ -10,7 +10,7 @@ export async function createProject(projectName: string) {
   const templatePath = path.join(
     import.meta.dirname,
     "templates",
-    "cronograma-api",
+    "task-api",
   );
   const targetPath = path.join(process.cwd(), projectName);
 
