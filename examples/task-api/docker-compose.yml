@@ -1,9 +1,7 @@
 services:
   app:
-    image: node:22-bullseye
+    image: node:22-slim
     working_dir: /usr/src/app/examples/task-api
-    environment:
-      - NPM_TOKEN=${NPM_TOKEN}
     depends_on:
       - db
       - cache

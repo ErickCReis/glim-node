@@ -47,17 +47,43 @@ export async function createProject(projectName: string) {
         },
       },
       {
-        title: "Iniciando git",
+        title: "Configurando permissões dos scripts",
         task: async () => {
-          await execCommand("git", ["init", targetPath], { stdio: "ignore" });
-          await execCommand("git", ["-C", targetPath, "add", "."], {
+          const dockerPath = path.join(targetPath, "docker");
+          const scripts = ["init-app.sh", "init-localstack.sh"];
+
+          for (const script of scripts) {
+            await execCommand("chmod", ["+x", script], { cwd: dockerPath });
+          }
+
+          return "Permissões configuradas com sucesso!";
+        },
+      },
+      {
+        title: "Instalando dependências",
+        task: async () => {
+          await execCommand("pnpm", ["install", "--lockfile-only"], {
+            cwd: targetPath,
             stdio: "ignore",
           });
-          await execCommand(
-            "git",
-            ["-C", targetPath, "commit", "-m", "initial commit"],
-            { stdio: "ignore" },
-          );
+          return "Dependências instaladas com sucesso!";
+        },
+      },
+      {
+        title: "Iniciando git",
+        task: async () => {
+          await execCommand("git", ["init"], {
+            cwd: targetPath,
+            stdio: "ignore",
+          });
+          await execCommand("git", ["add", "."], {
+            cwd: targetPath,
+            stdio: "ignore",
+          });
+          await execCommand("git", ["commit", "-m", "initial commit"], {
+            cwd: targetPath,
+            stdio: "ignore",
+          });
 
           return "Git iniciado com sucesso!";
         },
