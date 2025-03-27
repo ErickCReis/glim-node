@@ -7,11 +7,7 @@ import path from "node:path";
 export async function createProject(projectName: string) {
   log.step("Criando novo projeto");
 
-  const templatePath = path.join(
-    import.meta.dirname,
-    "templates",
-    "task-api",
-  );
+  const templatePath = path.join(import.meta.dirname, "templates", "task-api");
   const targetPath = path.join(process.cwd(), projectName);
 
   if (existsSync(targetPath)) {
@@ -70,8 +66,7 @@ export async function createProject(projectName: string) {
 
     log.info(`Próximos passos:
   1. cd ${projectName}
-  2. Adicione o NPM_TOKEN no .env
-  3. docker compose up`);
+  2. docker compose up`);
   } catch (error) {
     throw new Error(`Falha ao criar projeto: ${(error as Error).message}`);
   }
