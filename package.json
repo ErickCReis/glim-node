@@ -1,5 +1,5 @@
 {
-  "name": "@ErickCReis/glim-node",
+  "name": "glim-node",
   "version": "0.0.6",
   "engines": {
     "node": ">=22.0.0",
@@ -8,9 +8,6 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/ErickCReis/glim-node.git"
-  },
-  "publishConfig": {
-    "registry": "https://npm.pkg.github.com/"
   },
   "type": "module",
   "files": ["dist", "dist/templates/**/*"],

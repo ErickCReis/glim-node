@@ -30,8 +30,7 @@ async function copyDirectory(
 
     if (entry.name === "package.json") {
       const data = JSON.parse(await fs.readFile(sourcePath, "utf-8"));
-      data.dependencies["glim-node"] =
-        `npm:@ErickCReis/glim-node@^${pkg.version}`;
+      data.dependencies["glim-node"] = `^${pkg.version}`;
       await fs.writeFile(targetPath, JSON.stringify(data, null, 2));
       continue;
     }

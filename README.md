@@ -12,14 +12,14 @@ A TypeScript-first toolkit for building Node.js applications with Hono.js, featu
 ## Installation
 
 ```bash
-pnpm add github:ErickCReis/glim-node#semver:^0
+pnpm add glim-node
 ```
 
 ## Quick Start
 
 1. Create a new project:
 ```bash
-pnpm dlx @ErickCReis/glim-node create
+pnpm dlx glim-node create
 ```
 
 2. Start the development server:
@@ -32,7 +32,7 @@ docker compose up
 
 ### Module Setup (src/modules/my-module/index.ts)
 ```typescript
-import { createModule } from '@ErickCReis/glim-node';
+import { createModule } from 'glim-node';
 import { router } from './router';
 
 // Create a module with integrations
@@ -61,7 +61,7 @@ export { myModule };
 
 ### Server Start (src/index.ts)
 ```typescript
-import { start } from '@ErickCReis/glim-node/server';
+import { start } from 'glim-node/server';
 import { myModule } from './modules/my-module';
 
 // Start the server with your module
