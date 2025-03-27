@@ -1,10 +1,10 @@
-import fs from "node:fs";
-import { join } from "node:path";
 import type {
   Feature,
   FeatureImAlive,
   FeatureType,
 } from "@core/_internal/features";
+import fs from "node:fs";
+import { join } from "node:path";
 export type ImAlive = {
   status: "alive" | "dead";
   latency: number;
@@ -103,7 +103,7 @@ export function createImAlive(
 
       if (
         (resource === "all" || resource === "http") &&
-        (value.type === "http.webservice" || value.type === "http.bifrost")
+        value.type === "http.webservice"
       ) {
         const alias = key.toLocaleLowerCase().replaceAll(/http[-_]?/g, "");
         const newKey = alias === "" ? "" : `.${alias}`;

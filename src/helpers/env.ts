@@ -22,9 +22,6 @@ export const coreEnv = z
       .transform((v) => appEnvOptionsMap[v]),
     APP_CORS_ORIGIN: z.string().optional().default("*"),
 
-    APP_CLIENT_KEY: z.string(),
-    APP_BIFROST_KEY: z.string(),
-
     CACHE_MIDDLEWARE: z.coerce.boolean().default(false),
     CACHE_MIDDLEWARE_KEY_EXPIRE: z.coerce.number().default(86400),
   })

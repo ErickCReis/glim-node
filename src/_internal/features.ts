@@ -48,18 +48,6 @@ const features = {
 
     return http.createHttpClient(httpEnv);
   },
-
-  "http.bifrost": async ({
-    module,
-    alias = "default",
-  }: { module: BaseModule; alias?: string }) => {
-    const http = await import("@core/helpers/http");
-    const httpEnv = http.getHttpEnv(module.namespace, alias);
-    return http.createBifrostClient({
-      ...httpEnv,
-      getAuth: () => module["~context"]?.var.auth.id,
-    });
-  },
 } as const;
 
 export type FeaturesType = typeof features;
@@ -83,16 +71,14 @@ export type FeatureConfig =
   | ({ type: "cache.redis" } & FeatureParams<"cache.redis">)
   | ({ type: "storage.s3" } & FeatureParams<"storage.s3">)
   | ({ type: "notification.sns" } & FeatureParams<"notification.sns">)
-  | ({ type: "http.webservice" } & FeatureParams<"http.webservice">)
-  | ({ type: "http.bifrost" } & FeatureParams<"http.bifrost">);
+  | ({ type: "http.webservice" } & FeatureParams<"http.webservice">);
 
 export type FeatureImAlive =
   | { type: "db.postgres"; driver: FeatureReturn<"db.postgres"> }
   | { type: "cache.redis"; driver: FeatureReturn<"cache.redis"> }
   | { type: "storage.s3"; driver: FeatureReturn<"storage.s3"> }
   | { type: "notification.sns"; driver: FeatureReturn<"notification.sns"> }
-  | { type: "http.webservice"; driver: FeatureReturn<"http.webservice"> }
-  | { type: "http.bifrost"; driver: FeatureReturn<"http.bifrost"> };
+  | { type: "http.webservice"; driver: FeatureReturn<"http.webservice"> };
 
 export function createFeature<F extends Feature>(
   feature: F,
