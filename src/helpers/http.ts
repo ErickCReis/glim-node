@@ -1,3 +1,4 @@
+import { ensureTrailingSlash, formatEnvKey } from "@core/helpers/utils";
 import { z } from "zod";
 
 type Method = "GET" | "POST" | "PUT" | "DELETE";
@@ -40,28 +41,11 @@ export function createHttpClient({
 }
 
 export function getHttpEnv(namespace?: string, alias = "default") {
-  const aliasWithoutPrefix = alias
-    .toLocaleLowerCase()
-    .replaceAll(/http[-_]?/g, "");
-
-  const key = (
-    namespace
-      ? alias === "default"
-        ? `HTTP_${namespace}`
-        : `HTTP_${namespace}_${aliasWithoutPrefix}`
-      : alias === "default"
-        ? "HTTP"
-        : `HTTP_${aliasWithoutPrefix}`
-  )
-    .toUpperCase()
-    .replaceAll("-", "_");
+  const key = formatEnvKey("HTTP", namespace, alias);
 
   const httpEnv = z
     .object({
-      [`${key}_URL`]: z
-        .string()
-        .nonempty()
-        .transform((v) => (v.endsWith("/") ? v : `${v}/`)),
+      [`${key}_URL`]: z.string().nonempty().transform(ensureTrailingSlash),
       [`${key}_TIMEOUT`]: z.coerce.number().default(5000),
     })
     .parse(process.env);

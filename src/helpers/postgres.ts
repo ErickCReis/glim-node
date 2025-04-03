@@ -1,3 +1,4 @@
+import { formatEnvKey } from "@core/helpers/utils";
 import { drizzle } from "drizzle-orm/node-postgres";
 import pg from "pg";
 import { z } from "zod";
@@ -7,18 +8,7 @@ export function createPostgresClient(config: pg.PoolConfig) {
 }
 
 export function getPostgresEnv(namespace?: string, alias = "default") {
-  const key = (
-    namespace
-      ? alias === "default"
-        ? `DB_${namespace}`
-        : `DB_${namespace}_${alias}`
-      : alias === "default"
-        ? "DB"
-        : `DB_${alias}`
-  )
-    .toUpperCase()
-    .replaceAll("-", "_");
-
+  const key = formatEnvKey("DB", namespace, alias);
   const dbEnv = z
     .object({
       [`${key}_HOST`]: z.string(),

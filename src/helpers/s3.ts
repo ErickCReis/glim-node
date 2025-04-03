@@ -3,6 +3,7 @@ import {
   ListBucketsCommand,
   S3Client,
 } from "@aws-sdk/client-s3";
+import { formatEnvKey } from "@core/helpers/utils";
 import { z } from "zod";
 
 export type S3 = ReturnType<typeof createS3Client>;
@@ -49,21 +50,7 @@ export function createS3Client(config: {
 }
 
 export function getS3Env(namespace?: string, alias = "default") {
-  const aliasWithoutPrefix = alias
-    .toLocaleLowerCase()
-    .replaceAll(/storage[-_]?/g, "");
-
-  const key = (
-    namespace
-      ? alias === "default"
-        ? `STORAGE_${namespace}`
-        : `STORAGE_${namespace}_${aliasWithoutPrefix}`
-      : alias === "default"
-        ? "STORAGE"
-        : `STORAGE_${aliasWithoutPrefix}`
-  )
-    .toUpperCase()
-    .replaceAll("-", "_");
+  const key = formatEnvKey("STORAGE", namespace, alias);
   const s3Env = z
     .object({
       [`${key}_REGION`]: z.string(),

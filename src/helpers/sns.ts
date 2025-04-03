@@ -3,6 +3,7 @@ import {
   PublishCommand,
   SNSClient,
 } from "@aws-sdk/client-sns";
+import { formatEnvKey } from "@core/helpers/utils";
 import { z } from "zod";
 
 export type SNS = ReturnType<typeof createSNSClient>;
@@ -52,18 +53,7 @@ export function getSNSEnv(
   alias = "default",
   topicNames: string[] = [],
 ) {
-  const key = (
-    namespace
-      ? alias === "default"
-        ? `NOTIFICATION_${namespace}`
-        : `NOTIFICATION_${namespace}_${alias}`
-      : alias === "default"
-        ? "NOTIFICATION"
-        : `NOTIFICATION_${alias}`
-  )
-    .toUpperCase()
-    .replaceAll("-", "_");
-
+  const key = formatEnvKey("NOTIFICATION", namespace, alias);
   const snsEnv = z
     .object({
       [`${key}_REGION`]: z.string(),

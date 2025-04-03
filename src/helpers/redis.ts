@@ -1,3 +1,4 @@
+import { formatEnvKey } from "@core/helpers/utils";
 import { Redis as IORedis, type RedisOptions } from "ioredis";
 import { z } from "zod";
 
@@ -41,17 +42,7 @@ export function createRedisClient(options: RedisOptions) {
 }
 
 export function getRedisEnv(namespace?: string, alias = "default") {
-  const key = (
-    namespace
-      ? alias === "default"
-        ? `CACHE_${namespace}`
-        : `CACHE_${namespace}_${alias}`
-      : alias === "default"
-        ? "CACHE"
-        : `CACHE_${alias}`
-  )
-    .toUpperCase()
-    .replaceAll("-", "_");
+  const key = formatEnvKey("CACHE", namespace, alias);
   const redisEnv = z
     .object({
       [`${key}_HOST`]: z.string(),
