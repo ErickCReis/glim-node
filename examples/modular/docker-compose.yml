@@ -1,7 +1,7 @@
 services:
   app:
     image: node:22-slim
-    working_dir: /usr/src/app/examples/task-api
+    working_dir: /usr/src/app/examples/modular
     depends_on:
       - db
       - cache
@@ -10,7 +10,7 @@ services:
       - "3000:3000"
     volumes:
       - ../..:/usr/src/app
-      - app_data:/usr/src/app/examples/task-api/node_modules
+      - app_data:/usr/src/app/examples/modular/node_modules
       - app_data:/usr/src/app/.pnpm-store
     command: sh ./docker/init-app.sh
 
