@@ -58,15 +58,22 @@ jobs:
         run: |
           pnpm version patch -m "chore(release): bump version to %s [skip ci]"
 
-      # 5. Push changes (commit and tag) - same as before
+      # 5. Run code formatting and amend the commit
+      - name: Format code and amend commit
+        run: |
+          pnpm check
+          git add .
+          git commit --amend --no-edit
+
+      # 6. Push changes (commit and tag)
       - name: Push changes (commit and tag)
         run: git push origin main --follow-tags
     
-      # 6. Build lib and cli
+      # 7. Build lib and cli
       - name: Build package
         run: pnpm run build
 
-      # 7. Publish package using pnpm
+      # 8. Publish package using pnpm
       - name: Publish package
         # pnpm publish respects the .npmrc file created by setup-node for auth
         # Add --no-git-checks if pnpm complains about the git state after the version commit
