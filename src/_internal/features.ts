@@ -1,31 +1,43 @@
+import type { BaseApp } from "@core/gn-app";
 import type { BaseModule } from "@core/gn-module";
 import type { Prettify } from "@core/helpers/types";
+
+type ModuleOrApp = BaseModule | BaseApp;
 
 const features = {
   "db.postgres": async ({
     module,
     alias = "default",
-  }: { module: BaseModule; alias?: string }) => {
+  }: { module: ModuleOrApp; alias?: string }) => {
     const postgres = await import("@core/helpers/postgres");
-    const dbEnv = postgres.getPostgresEnv(module.namespace, alias);
+    const dbEnv = postgres.getPostgresEnv(
+      "namespace" in module ? module.namespace : undefined,
+      alias,
+    );
     return postgres.createPostgresClient({ connectionString: dbEnv.url });
   },
 
   "cache.redis": async ({
     module,
     alias = "default",
-  }: { module: BaseModule; alias?: string }) => {
+  }: { module: ModuleOrApp; alias?: string }) => {
     const redis = await import("@core/helpers/redis");
-    const redisEnv = redis.getRedisEnv(module.namespace, alias);
+    const redisEnv = redis.getRedisEnv(
+      "namespace" in module ? module.namespace : undefined,
+      alias,
+    );
     return redis.createRedisClient(redisEnv);
   },
 
   "storage.s3": async ({
     module,
     alias = "default",
-  }: { module: BaseModule; alias?: string }) => {
+  }: { module: ModuleOrApp; alias?: string }) => {
     const s3 = await import("@core/helpers/s3");
-    const s3Env = s3.getS3Env(module.namespace, alias);
+    const s3Env = s3.getS3Env(
+      "namespace" in module ? module.namespace : undefined,
+      alias,
+    );
     return s3.createS3Client(s3Env);
   },
 
@@ -33,18 +45,25 @@ const features = {
     module,
     alias = "default",
     topics,
-  }: { module: BaseModule; alias?: string; topics: Topics }) => {
+  }: { module: ModuleOrApp; alias?: string; topics: Topics }) => {
     const sns = await import("@core/helpers/sns");
-    const snsEnv = sns.getSNSEnv(module.namespace, alias, topics);
+    const snsEnv = sns.getSNSEnv(
+      "namespace" in module ? module.namespace : undefined,
+      alias,
+      topics,
+    );
     return sns.createSNSClient(snsEnv);
   },
 
   "http.webservice": async ({
     module,
     alias = "default",
-  }: { module: BaseModule; alias?: string }) => {
+  }: { module: ModuleOrApp; alias?: string }) => {
     const http = await import("@core/helpers/http");
-    const httpEnv = http.getHttpEnv(module.namespace, alias);
+    const httpEnv = http.getHttpEnv(
+      "namespace" in module ? module.namespace : undefined,
+      alias,
+    );
 
     return http.createHttpClient(httpEnv);
   },
@@ -83,7 +102,7 @@ export type FeatureImAlive =
 export function createFeature<F extends Feature>(
   feature: F,
   config: FeatureParams<F>,
-  module: BaseModule,
+  module: ModuleOrApp,
   alias = "default",
 ): FeatureReturn<F> {
   // @ts-expect-error

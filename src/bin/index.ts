@@ -3,9 +3,21 @@ import { readdir } from "node:fs/promises";
 import path from "node:path";
 import { parseArgs } from "node:util";
 import { cancel, intro, isCancel, log, select, text } from "@clack/prompts";
+import { isAppStructure } from "@core/bin/utils";
 
 async function getSelectedModule(moduleArg?: string, folderPath = "") {
   log.step("Verificando módulos");
+
+  // Verifica se estamos usando a estrutura de app
+  const isApp = await isAppStructure();
+
+  if (isApp) {
+    // Na estrutura de app, não há seleção de módulo
+    log.info("Utilizando estrutura de aplicativo sem namespace");
+    return "app";
+  }
+
+  // Estrutura de módulos tradicional
   const modules = (await readdir("./modules", { withFileTypes: true }))
     .filter((d) => d.isDirectory())
     .map((d) => d.name)

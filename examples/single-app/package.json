@@ -1,0 +1,37 @@
+{
+  "name": "task-api-app",
+  "type": "module",
+  "version": "0.0.0",
+  "engines": {
+    "node": ">=22.0.0",
+    "pnpm": ">=10.0.0"
+  },
+  "scripts": {
+    "build": "tsc",
+    "check": "biome check --write . && tsc --noEmit",
+    "dev": "tsx --watch --env-file=.env ./src/index.ts"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.775.0",
+    "@aws-sdk/client-sns": "^3.775.0",
+    "@hono/standard-validator": "^0.1.2",
+    "dotenv": "^16.4.7",
+    "drizzle-orm": "^0.41.0",
+    "glim-node": "../..",
+    "hono": "^4.7.5",
+    "ioredis": "^5.6.0",
+    "pg": "^8.14.1",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "1.9.4",
+    "@types/node": "^22.13.13",
+    "@types/pg": "^8.11.11",
+    "drizzle-kit": "^0.30.5",
+    "tsx": "^4.19.3",
+    "typescript": "^5.7.3"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": ["@biomejs/biome", "esbuild"]
+  }
+}

@@ -48,14 +48,18 @@ export function createSNSClient<
 }
 
 export function getSNSEnv(
-  namespace: string,
+  namespace?: string,
   alias = "default",
   topicNames: string[] = [],
 ) {
   const key = (
-    alias === "default"
-      ? `NOTIFICATION_${namespace}`
-      : `NOTIFICATION_${namespace}_${alias}`
+    namespace
+      ? alias === "default"
+        ? `NOTIFICATION_${namespace}`
+        : `NOTIFICATION_${namespace}_${alias}`
+      : alias === "default"
+        ? "NOTIFICATION"
+        : `NOTIFICATION_${alias}`
   )
     .toUpperCase()
     .replaceAll("-", "_");

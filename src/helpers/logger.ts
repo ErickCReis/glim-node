@@ -4,13 +4,18 @@ import pino from "pino";
 
 export type Logger = pino.Logger;
 
-export function createLogger(namespace = "main"): Logger {
+export function createLogger(namespace?: string): Logger {
+  const appName = namespace
+    ? `${coreEnv.APP_NAME}/${namespace}`
+    : coreEnv.APP_NAME;
+  const logFile = namespace ? `./logs/${namespace}.log` : "./logs/app.log";
+
   return pino({
     level: coreEnv.APP_ENV === "DEV" ? "debug" : "info",
     timestamp: () => `,"timestamp":"${toISOStringWithTimezone(new Date())}"`,
     formatters: {
       bindings: () => ({
-        appname: `${coreEnv.APP_NAME}/${namespace}`,
+        appname: appName,
         env: coreEnv.APP_ENV,
       }),
       level: (label, sererity) => ({
@@ -23,7 +28,7 @@ export function createLogger(namespace = "main"): Logger {
 
     transport: {
       target: "pino/file",
-      options: { destination: `./logs/${namespace}.log`, mkdir: true },
+      options: { destination: logFile, mkdir: true },
     },
   });
 }

@@ -2,6 +2,7 @@ import "dotenv/config";
 
 import type { ImAlive } from "@core/_internal/im-alive";
 import { errorHandler } from "@core/exceptions/error-handler";
+import type { GnApp } from "@core/gn-app";
 import type { GnModule } from "@core/gn-module";
 import { coreEnv } from "@core/helpers/env";
 import { createLogger } from "@core/helpers/logger";
@@ -18,7 +19,7 @@ import { validator } from "hono/validator";
 
 const mainLogger = createLogger();
 
-export async function start(modules: Array<GnModule>) {
+export async function start(modules: Array<GnModule> | GnApp) {
   const app = new Hono({ strict: false })
     .use(
       "*",
@@ -56,8 +57,11 @@ export async function start(modules: Array<GnModule>) {
         return { force };
       }),
       async (c) => {
+        // Normalize modules to array
+        const moduleArray = Array.isArray(modules) ? modules : [modules];
+
         const info = await Promise.all(
-          modules.map((m) =>
+          moduleArray.map((m) =>
             m.imAlive(
               c.req.valid("param").resource ?? "all",
               c.req.valid("query").force,
@@ -79,22 +83,38 @@ export async function start(modules: Array<GnModule>) {
       },
     );
 
-  for (const module of modules) {
+  // Normalize modules to array
+  const moduleArray = Array.isArray(modules) ? modules : [modules];
+
+  for (const module of moduleArray) {
     if (!module["~router"]) {
-      console.error(`Nenhum router fornecido para ${module.namespace}`);
+      console.error(
+        `Nenhum router fornecido${module.namespace ? ` para ${module.namespace}` : ""}`,
+      );
       process.exit(1);
     }
 
-    app
-      .use(
-        `/${module.namespace}/*`,
-        loggerMiddleware(module),
-        async (c, next) => {
+    if ("namespace" in module && module.namespace) {
+      // Handle GnModule with namespace
+      app
+        .use(
+          `/${module.namespace}/*`,
+          loggerMiddleware(module),
+          async (c, next) => {
+            module["~context"] = c;
+            await next();
+          },
+        )
+        .route("/", module["~router"]);
+    } else {
+      // Handle GnApp without namespace
+      app
+        .use("/*", loggerMiddleware(module), async (c, next) => {
           module["~context"] = c;
           await next();
-        },
-      )
-      .route("/", module["~router"]);
+        })
+        .route("/", module["~router"]);
+    }
   }
 
   app.onError((_, c) => errorHandler(c));

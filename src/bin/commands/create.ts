@@ -1,13 +1,52 @@
-import { log, tasks } from "@clack/prompts";
-import { execCommand } from "@core/bin/utils";
 import { existsSync } from "node:fs";
 import fs from "node:fs/promises";
 import path from "node:path";
+import { cancel, isCancel, log, select, tasks } from "@clack/prompts";
+import { execCommand } from "@core/bin/utils";
+
+async function getAvailableTemplates() {
+  const templatesDir = path.join(import.meta.dirname, "templates");
+  const entries = await fs.readdir(templatesDir, { withFileTypes: true });
+  return entries
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => entry.name);
+}
+
+async function selectTemplate(templates: string[]) {
+  if (templates.length === 1) {
+    log.info(`Utilizando o único template disponível: ${templates[0]}`);
+    return templates[0] as string;
+  }
+
+  const templateSelected = await select({
+    message: "Selecione um template para o projeto",
+    options: templates.map((template) => ({
+      label: template,
+      value: template,
+    })),
+  });
+
+  if (isCancel(templateSelected)) {
+    cancel("Operação cancelada.");
+    process.exit(1);
+  }
+
+  return templateSelected;
+}
 
 export async function createProject(projectName: string) {
   log.step("Criando novo projeto");
 
-  const templatePath = path.join(import.meta.dirname, "templates", "task-api");
+  const templates = await getAvailableTemplates();
+  const selectedTemplate = await selectTemplate(templates);
+
+  log.info(`Utilizando template: ${selectedTemplate}`);
+
+  const templatePath = path.join(
+    import.meta.dirname,
+    "templates",
+    selectedTemplate,
+  );
   const targetPath = path.join(process.cwd(), projectName);
 
   if (existsSync(targetPath)) {

@@ -40,9 +40,15 @@ export function createRedisClient(options: RedisOptions) {
   return new Redis(options);
 }
 
-export function getRedisEnv(namespace: string, alias = "default") {
+export function getRedisEnv(namespace?: string, alias = "default") {
   const key = (
-    alias === "default" ? `CACHE_${namespace}` : `CACHE_${namespace}_${alias}`
+    namespace
+      ? alias === "default"
+        ? `CACHE_${namespace}`
+        : `CACHE_${namespace}_${alias}`
+      : alias === "default"
+        ? "CACHE"
+        : `CACHE_${alias}`
   )
     .toUpperCase()
     .replaceAll("-", "_");

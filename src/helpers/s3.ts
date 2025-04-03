@@ -48,15 +48,19 @@ export function createS3Client(config: {
   };
 }
 
-export function getS3Env(namespace: string, alias = "default") {
+export function getS3Env(namespace?: string, alias = "default") {
   const aliasWithoutPrefix = alias
     .toLocaleLowerCase()
     .replaceAll(/storage[-_]?/g, "");
 
   const key = (
-    alias === "default"
-      ? `STORAGE_${namespace}`
-      : `STORAGE_${namespace}_${aliasWithoutPrefix}`
+    namespace
+      ? alias === "default"
+        ? `STORAGE_${namespace}`
+        : `STORAGE_${namespace}_${aliasWithoutPrefix}`
+      : alias === "default"
+        ? "STORAGE"
+        : `STORAGE_${aliasWithoutPrefix}`
   )
     .toUpperCase()
     .replaceAll("-", "_");

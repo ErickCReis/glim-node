@@ -1,0 +1,47 @@
+services:
+  app:
+    image: node:22-slim
+    working_dir: /usr/src/app/examples/single-app
+    depends_on:
+      - db
+      - cache
+      - localstack
+    ports:
+      - "3000:3000"
+    volumes:
+      - ../..:/usr/src/app
+      - app_data:/usr/src/app/examples/single-app/node_modules
+      - app_data:/usr/src/app/.pnpm-store
+    command: sh ./docker/init-app.sh
+
+  db:
+    image: postgres:15
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+    volumes:
+      - db_data:/var/lib/postgresql/data
+
+  cache:
+    image: redis:7
+    ports:
+      - "6379:6379"
+
+  localstack:
+    image: localstack/localstack:latest
+    environment:
+      - SERVICES=s3,sns
+    env_file:
+      - .env
+    volumes:
+      - "./docker/init-localstack.sh:/etc/localstack/init/ready.d/init.sh"
+      - "/var/run/docker.sock:/var/run/docker.sock"
+      - "localstack_data:/var/lib/localstack"
+    ports:
+      - "4566:4566"
+
+volumes:
+  app_data:
+  db_data:
+  localstack_data:

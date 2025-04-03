@@ -39,15 +39,19 @@ export function createHttpClient({
   };
 }
 
-export function getHttpEnv(namespace: string, alias = "default") {
+export function getHttpEnv(namespace?: string, alias = "default") {
   const aliasWithoutPrefix = alias
     .toLocaleLowerCase()
     .replaceAll(/http[-_]?/g, "");
 
   const key = (
-    alias === "default"
-      ? `HTTP_${namespace}`
-      : `HTTP_${namespace}_${aliasWithoutPrefix}`
+    namespace
+      ? alias === "default"
+        ? `HTTP_${namespace}`
+        : `HTTP_${namespace}_${aliasWithoutPrefix}`
+      : alias === "default"
+        ? "HTTP"
+        : `HTTP_${aliasWithoutPrefix}`
   )
     .toUpperCase()
     .replaceAll("-", "_");

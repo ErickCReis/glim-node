@@ -6,9 +6,15 @@ export function createPostgresClient(config: pg.PoolConfig) {
   return drizzle(new pg.Pool(config));
 }
 
-export function getPostgresEnv(namespace: string, alias = "default") {
+export function getPostgresEnv(namespace?: string, alias = "default") {
   const key = (
-    alias === "default" ? `DB_${namespace}` : `DB_${namespace}_${alias}`
+    namespace
+      ? alias === "default"
+        ? `DB_${namespace}`
+        : `DB_${namespace}_${alias}`
+      : alias === "default"
+        ? "DB"
+        : `DB_${alias}`
   )
     .toUpperCase()
     .replaceAll("-", "_");

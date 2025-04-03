@@ -1,10 +1,10 @@
+import fs from "node:fs";
+import { join } from "node:path";
 import type {
   Feature,
   FeatureImAlive,
   FeatureType,
 } from "@core/_internal/features";
-import fs from "node:fs";
-import { join } from "node:path";
 export type ImAlive = {
   status: "alive" | "dead";
   latency: number;
@@ -29,7 +29,7 @@ async function check(key: string, fn: () => Promise<boolean>) {
 }
 
 export function createImAlive(
-  namespace: string,
+  namespace: string | undefined,
   features: { [key: string]: FeatureImAlive },
 ) {
   return async (resource: FeatureType | "all" = "all", force = false) => {
@@ -50,8 +50,11 @@ export function createImAlive(
       ) {
         const alias = key.toLocaleLowerCase().replaceAll(/db[-_]?/g, "");
         const newKey = alias === "" ? "" : `.${alias}`;
+        const resourceKey = namespace
+          ? `db.${namespace}${newKey}`
+          : `db${newKey}`;
         checksPromises.push(
-          check(`db.${namespace}${newKey}`, () =>
+          check(resourceKey, () =>
             value.driver.execute("SELECT 1").then((r) => r.rowCount === 1),
           ),
         );
@@ -63,9 +66,12 @@ export function createImAlive(
       ) {
         const alias = key.toLocaleLowerCase().replaceAll(/cache[-_]?/g, "");
         const newKey = alias === "" ? "" : `.${alias}`;
+        const resourceKey = namespace
+          ? `cache.${namespace}${newKey}`
+          : `cache${newKey}`;
 
         checksPromises.push(
-          check(`cache.${namespace}${newKey}`, () =>
+          check(resourceKey, () =>
             value.driver.ping().then((r) => r === "PONG"),
           ),
         );
@@ -77,11 +83,12 @@ export function createImAlive(
       ) {
         const alias = key.toLocaleLowerCase().replaceAll(/storage[-_]?/g, "");
         const newKey = alias === "" ? "" : `.${alias}`;
+        const resourceKey = namespace
+          ? `storage.${namespace}${newKey}`
+          : `storage${newKey}`;
 
         checksPromises.push(
-          check(`storage.${namespace}${newKey}`, () =>
-            value.driver.listBuckets().then(() => true),
-          ),
+          check(resourceKey, () => value.driver.listBuckets().then(() => true)),
         );
       }
 
@@ -93,9 +100,12 @@ export function createImAlive(
           .toLocaleLowerCase()
           .replaceAll(/notification[-_]?/g, "");
         const newKey = alias === "" ? "" : `.${alias}`;
+        const resourceKey = namespace
+          ? `notification.${namespace}${newKey}`
+          : `notification${newKey}`;
 
         checksPromises.push(
-          check(`notification.${namespace}${newKey}`, () =>
+          check(resourceKey, () =>
             value.driver.listTopics().then((r) => (r.Topics?.length ?? 0) > 0),
           ),
         );
@@ -107,9 +117,12 @@ export function createImAlive(
       ) {
         const alias = key.toLocaleLowerCase().replaceAll(/http[-_]?/g, "");
         const newKey = alias === "" ? "" : `.${alias}`;
+        const resourceKey = namespace
+          ? `http.${namespace}${newKey}`
+          : `http${newKey}`;
 
         checksPromises.push(
-          check(`http.${namespace}${newKey}`, () =>
+          check(resourceKey, () =>
             value.driver.get({ path: "/" }).then((r) => r.status === 200),
           ),
         );
