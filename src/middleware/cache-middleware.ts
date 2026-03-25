@@ -1,4 +1,4 @@
-import { type FeatureReturn, createFeature } from "@core/_internal/features";
+import { createFeature, type FeatureReturn } from "@core/_internal/features";
 import { cacheRequest, coreEnv, time } from "@core/helpers";
 import type { Auth } from "@core/middleware/auth-middleware";
 import { createMiddleware } from "hono/factory";

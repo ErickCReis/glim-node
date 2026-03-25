@@ -48,7 +48,8 @@ export const time = Object.assign(_time, {
 
   untilEndOfDay(options: OutputOptions = { out: "s", round: true }) {
     const now = Date.now();
-    const result = now - (now % time("1d", { out: "ms" }));
+    const result =
+      time("1d", { out: "ms" }) - (now % time("1d", { out: "ms" }));
     return outputFormatToUnit(result, options);
   },
 });

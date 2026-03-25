@@ -63,7 +63,7 @@ export function getS3Env(namespace?: string, alias = "default") {
 
   const region = s3Env[`${key}_REGION`] as string;
   const bucket = s3Env[`${key}_BUCKET`] as string;
-  const endpoint = s3Env[`${key}_ENDPOINT`];
+  const endpoint = s3Env[`${key}_ENDPOINT`] as string | undefined;
   const accessKeyId = s3Env[`${key}_ACCESS_KEY`] as string;
   const secretAccessKey = s3Env[`${key}_SECRET_KEY`] as string;
 

@@ -9,7 +9,7 @@ import { z } from "zod";
 export type SNS = ReturnType<typeof createSNSClient>;
 
 export function createSNSClient<
-  Topics extends ReadonlyArray<string> | undefined,
+  const Topics extends ReadonlyArray<string> | undefined,
 >(config: {
   region: string;
   endpoint?: string;
@@ -51,7 +51,7 @@ export function createSNSClient<
 export function getSNSEnv(
   namespace?: string,
   alias = "default",
-  topicNames: string[] = [],
+  topicNames: ReadonlyArray<string> = [],
 ) {
   const key = formatEnvKey("NOTIFICATION", namespace, alias);
   const snsEnv = z
@@ -73,7 +73,7 @@ export function getSNSEnv(
     .parse(process.env);
 
   const region = snsEnv[`${key}_REGION`] as string;
-  const endpoint = snsEnv[`${key}_ENDPOINT`];
+  const endpoint = snsEnv[`${key}_ENDPOINT`] as string | undefined;
   const accessKeyId = snsEnv[`${key}_ACCESS_KEY`] as string;
   const secretAccessKey = snsEnv[`${key}_SECRET_KEY`] as string;
   const topics = topicNames.reduce(

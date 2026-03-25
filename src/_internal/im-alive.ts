@@ -15,10 +15,32 @@ export type ImAliveFn = (
   force: boolean,
 ) => Promise<Record<string, ImAlive> | readonly ["OK"]>;
 
-async function check(key: string, fn: () => Promise<boolean>) {
-  const startTime = process.hrtime();
+type ImAliveRuntime = {
+  appendFileSync?: typeof fs.appendFileSync;
+  existsSync?: typeof fs.existsSync;
+  getCwd?: () => string;
+  hrtime?: typeof process.hrtime;
+  now?: () => number;
+};
+
+function resolveRuntime(runtime: ImAliveRuntime = {}) {
+  return {
+    appendFileSync: runtime.appendFileSync ?? fs.appendFileSync,
+    existsSync: runtime.existsSync ?? fs.existsSync,
+    getCwd: runtime.getCwd ?? (() => process.cwd()),
+    hrtime: runtime.hrtime ?? process.hrtime,
+    now: runtime.now ?? Date.now,
+  };
+}
+
+async function check(
+  key: string,
+  fn: () => Promise<boolean>,
+  runtime: ReturnType<typeof resolveRuntime>,
+) {
+  const startTime = runtime.hrtime();
   const success = await fn().catch(() => false);
-  const [elapsedTimeSec, elapsedTimeNano] = process.hrtime(startTime);
+  const [elapsedTimeSec, elapsedTimeNano] = runtime.hrtime(startTime);
   const elapsed = (elapsedTimeSec * 1e9 + elapsedTimeNano / 1e9).toPrecision(6);
   return {
     [key]: {
@@ -31,13 +53,15 @@ async function check(key: string, fn: () => Promise<boolean>) {
 export function createImAlive(
   namespace: string | undefined,
   features: { [key: string]: FeatureImAlive },
+  runtime: ImAliveRuntime = {},
 ) {
+  const resolvedRuntime = resolveRuntime(runtime);
   return async (resource: FeatureType | "all" = "all", force = false) => {
     const logFileName = `im-alive${resource !== "all" ? `.${resource}` : ""}.log`;
-    const logPath = join(process.cwd(), logFileName);
+    const logPath = join(resolvedRuntime.getCwd(), logFileName);
 
-    if (!force && fs.existsSync(logPath)) {
-      fs.appendFileSync(logPath, `${Date.now()}\n`);
+    if (!force && resolvedRuntime.existsSync(logPath)) {
+      resolvedRuntime.appendFileSync(logPath, `${resolvedRuntime.now()}\n`);
       return ["OK"] as const;
     }
 
@@ -46,7 +70,7 @@ export function createImAlive(
     for (const [key, value] of Object.entries(features)) {
       if (
         (resource === "all" || resource === "db") &&
-        value.type === "db.postgres"
+        (value.type === "db.postgres" || value.type === "db.mysql")
       ) {
         const alias = key.toLocaleLowerCase().replaceAll(/db[-_]?/g, "");
         const newKey = alias === "" ? "" : `.${alias}`;
@@ -54,8 +78,15 @@ export function createImAlive(
           ? `db.${namespace}${newKey}`
           : `db${newKey}`;
         checksPromises.push(
-          check(resourceKey, () =>
-            value.driver.execute("SELECT 1").then((r) => r.rowCount === 1),
+          check(
+            resourceKey,
+            () =>
+              value.driver
+                // @ts-expect-error
+                .execute("SELECT 1")
+                // @ts-expect-error
+                .then((r) => r.rowCount === 1),
+            resolvedRuntime,
           ),
         );
       }
@@ -71,8 +102,10 @@ export function createImAlive(
           : `cache${newKey}`;
 
         checksPromises.push(
-          check(resourceKey, () =>
-            value.driver.ping().then((r) => r === "PONG"),
+          check(
+            resourceKey,
+            () => value.driver.ping().then((r) => r === "PONG"),
+            resolvedRuntime,
           ),
         );
       }
@@ -88,7 +121,11 @@ export function createImAlive(
           : `storage${newKey}`;
 
         checksPromises.push(
-          check(resourceKey, () => value.driver.listBuckets().then(() => true)),
+          check(
+            resourceKey,
+            () => value.driver.listBuckets().then(() => true),
+            resolvedRuntime,
+          ),
         );
       }
 
@@ -105,8 +142,13 @@ export function createImAlive(
           : `notification${newKey}`;
 
         checksPromises.push(
-          check(resourceKey, () =>
-            value.driver.listTopics().then((r) => (r.Topics?.length ?? 0) > 0),
+          check(
+            resourceKey,
+            () =>
+              value.driver
+                .listTopics()
+                .then((r) => (r.Topics?.length ?? 0) > 0),
+            resolvedRuntime,
           ),
         );
       }
@@ -122,8 +164,10 @@ export function createImAlive(
           : `http${newKey}`;
 
         checksPromises.push(
-          check(resourceKey, () =>
-            value.driver.get({ path: "/" }).then((r) => r.status === 200),
+          check(
+            resourceKey,
+            () => value.driver.get({ path: "/" }).then((r) => r.status === 200),
+            resolvedRuntime,
           ),
         );
       }
@@ -136,7 +180,7 @@ export function createImAlive(
     const allAlive = Object.values(res).every((r) => r.status === "alive");
 
     if (allAlive) {
-      fs.appendFileSync(logPath, `${Date.now()}\n`);
+      resolvedRuntime.appendFileSync(logPath, `${resolvedRuntime.now()}\n`);
     }
 
     return res;
