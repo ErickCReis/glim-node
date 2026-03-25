@@ -1,24 +1,71 @@
-import { existsSync } from "node:fs";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { cancel, isCancel, log, select, tasks } from "@clack/prompts";
 import { execCommand } from "@core/bin/utils";
 
-async function getAvailableTemplates() {
-  const templatesDir = path.join(import.meta.dirname, "templates");
-  const entries = await fs.readdir(templatesDir, { withFileTypes: true });
+type TaskDefinition = {
+  title: string;
+  task: () => Promise<string> | string;
+};
+
+type CreateProjectRuntime = {
+  cancel: typeof cancel;
+  cwd: () => string;
+  execCommand: typeof execCommand;
+  exit: typeof process.exit;
+  fs: typeof fs;
+  getTemplatesDir: () => string;
+  isCancel: typeof isCancel;
+  log: Pick<typeof log, "info" | "step">;
+  path: typeof path;
+  select: typeof select;
+  tasks: (tasks: TaskDefinition[]) => Promise<unknown>;
+};
+
+function getDefaultTemplatesDir() {
+  return (
+    process.env.GLIM_TEMPLATES_DIR ??
+    path.join(import.meta.dirname, "templates")
+  );
+}
+
+function resolveRuntime(
+  runtime: Partial<CreateProjectRuntime> = {},
+): CreateProjectRuntime {
+  return {
+    cancel: runtime.cancel ?? cancel,
+    cwd: runtime.cwd ?? (() => process.cwd()),
+    execCommand: runtime.execCommand ?? execCommand,
+    exit: runtime.exit ?? process.exit,
+    fs: runtime.fs ?? fs,
+    getTemplatesDir: runtime.getTemplatesDir ?? getDefaultTemplatesDir,
+    isCancel: runtime.isCancel ?? isCancel,
+    log: runtime.log ?? log,
+    path: runtime.path ?? path,
+    select: runtime.select ?? select,
+    tasks: runtime.tasks ?? tasks,
+  };
+}
+
+async function getAvailableTemplates(runtime: CreateProjectRuntime) {
+  const entries = await runtime.fs.readdir(runtime.getTemplatesDir(), {
+    withFileTypes: true,
+  });
   return entries
     .filter((entry) => entry.isDirectory())
     .map((entry) => entry.name);
 }
 
-async function selectTemplate(templates: string[]) {
+async function selectTemplate(
+  runtime: CreateProjectRuntime,
+  templates: string[],
+) {
   if (templates.length === 1) {
-    log.info(`Utilizando o único template disponível: ${templates[0]}`);
+    runtime.log.info(`Utilizando o único template disponível: ${templates[0]}`);
     return templates[0] as string;
   }
 
-  const templateSelected = await select({
+  const templateSelected = await runtime.select({
     message: "Selecione um template para o projeto",
     options: templates.map((template) => ({
       label: template,
@@ -26,60 +73,77 @@ async function selectTemplate(templates: string[]) {
     })),
   });
 
-  if (isCancel(templateSelected)) {
-    cancel("Operação cancelada.");
-    process.exit(1);
+  if (runtime.isCancel(templateSelected)) {
+    runtime.cancel("Operação cancelada.");
+    runtime.exit(1);
   }
 
-  return templateSelected;
+  return templateSelected as string;
 }
 
 export async function createProject(projectName: string) {
-  log.step("Criando novo projeto");
+  return createProjectWithRuntime(projectName);
+}
 
-  const templates = await getAvailableTemplates();
-  const selectedTemplate = await selectTemplate(templates);
+export async function createProjectWithRuntime(
+  projectName: string,
+  runtime: Partial<CreateProjectRuntime> = {},
+) {
+  const resolvedRuntime = resolveRuntime(runtime);
+  resolvedRuntime.log.step("Criando novo projeto");
 
-  log.info(`Utilizando template: ${selectedTemplate}`);
+  const templates = await getAvailableTemplates(resolvedRuntime);
+  const selectedTemplate = await selectTemplate(resolvedRuntime, templates);
 
-  const templatePath = path.join(
-    import.meta.dirname,
-    "templates",
+  resolvedRuntime.log.info(`Utilizando template: ${selectedTemplate}`);
+
+  const templatePath = resolvedRuntime.path.join(
+    resolvedRuntime.getTemplatesDir(),
     selectedTemplate,
   );
-  const targetPath = path.join(process.cwd(), projectName);
+  const targetPath = resolvedRuntime.path.join(
+    resolvedRuntime.cwd(),
+    projectName,
+  );
 
-  if (existsSync(targetPath)) {
+  try {
+    await resolvedRuntime.fs.access(targetPath);
     throw new Error(`Diretório "${projectName}" já existe`);
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
+      throw error;
+    }
   }
 
   try {
-    await tasks([
+    await resolvedRuntime.tasks([
       {
         title: "Copiando template",
         task: async () => {
-          // Copy template files
-          await copyDirectory(templatePath, targetPath, [
+          await copyDirectory(resolvedRuntime, templatePath, targetPath, [
             "node_modules",
             ".env",
             "dist",
+            "bun.lock",
+            "bun.lockb",
           ]);
 
-          // Update package.json
-          const packageJsonPath = path.join(targetPath, "package.json");
+          const packageJsonPath = resolvedRuntime.path.join(
+            targetPath,
+            "package.json",
+          );
           const packageJson = JSON.parse(
-            await fs.readFile(packageJsonPath, "utf-8"),
+            await resolvedRuntime.fs.readFile(packageJsonPath, "utf-8"),
           );
           packageJson.name = projectName;
-          await fs.writeFile(
+          await resolvedRuntime.fs.writeFile(
             packageJsonPath,
             JSON.stringify(packageJson, null, 2),
           );
 
-          // Copy .env.example to .env
-          await fs.copyFile(
-            path.join(targetPath, ".env.example"),
-            path.join(targetPath, ".env"),
+          await resolvedRuntime.fs.copyFile(
+            resolvedRuntime.path.join(targetPath, ".env.example"),
+            resolvedRuntime.path.join(targetPath, ".env"),
           );
 
           return "Template copiado com sucesso!";
@@ -88,11 +152,13 @@ export async function createProject(projectName: string) {
       {
         title: "Configurando permissões dos scripts",
         task: async () => {
-          const dockerPath = path.join(targetPath, "docker");
+          const dockerPath = resolvedRuntime.path.join(targetPath, "docker");
           const scripts = ["init-app.sh", "init-localstack.sh"];
 
           for (const script of scripts) {
-            await execCommand("chmod", ["+x", script], { cwd: dockerPath });
+            await resolvedRuntime.execCommand("chmod", ["+x", script], {
+              cwd: dockerPath,
+            });
           }
 
           return "Permissões configuradas com sucesso!";
@@ -101,35 +167,43 @@ export async function createProject(projectName: string) {
       {
         title: "Instalando dependências",
         task: async () => {
-          await execCommand("pnpm", ["install", "--lockfile-only"], {
-            cwd: targetPath,
-            stdio: "ignore",
-          });
+          await resolvedRuntime.execCommand(
+            "bun",
+            ["install", "--save-text-lockfile", "--lockfile-only"],
+            {
+              cwd: targetPath,
+              stdio: "ignore",
+            },
+          );
           return "Dependências instaladas com sucesso!";
         },
       },
       {
         title: "Iniciando git",
         task: async () => {
-          await execCommand("git", ["init"], {
+          await resolvedRuntime.execCommand("git", ["init"], {
             cwd: targetPath,
             stdio: "ignore",
           });
-          await execCommand("git", ["add", "."], {
+          await resolvedRuntime.execCommand("git", ["add", "."], {
             cwd: targetPath,
             stdio: "ignore",
           });
-          await execCommand("git", ["commit", "-m", "initial commit"], {
-            cwd: targetPath,
-            stdio: "ignore",
-          });
+          await resolvedRuntime.execCommand(
+            "git",
+            ["commit", "-m", "initial commit"],
+            {
+              cwd: targetPath,
+              stdio: "ignore",
+            },
+          );
 
           return "Git iniciado com sucesso!";
         },
       },
     ]);
 
-    log.info(`Próximos passos:
+    resolvedRuntime.log.info(`Próximos passos:
   1. cd ${projectName}
   2. docker compose up`);
   } catch (error) {
@@ -138,31 +212,35 @@ export async function createProject(projectName: string) {
 }
 
 async function copyDirectory(
+  runtime: CreateProjectRuntime,
   source: string,
   target: string,
   exclude: string[] = [],
 ) {
-  await fs.mkdir(target, { recursive: true });
-  const entries = await fs.readdir(source, { withFileTypes: true });
+  await runtime.fs.mkdir(target, { recursive: true });
+  const entries = await runtime.fs.readdir(source, { withFileTypes: true });
 
   for (const entry of entries) {
-    const sourcePath = path.join(source, entry.name);
-    const targetPath = path.join(target, entry.name);
+    const sourcePath = runtime.path.join(source, entry.name);
+    const targetPath = runtime.path.join(target, entry.name);
 
     if (exclude.includes(entry.name)) {
       continue;
     }
 
     if (entry.name === "_gitignore") {
-      const newTargetPath = path.join(target, ".gitignore");
-      await fs.copyFile(sourcePath, newTargetPath);
+      await runtime.fs.copyFile(
+        sourcePath,
+        runtime.path.join(target, ".gitignore"),
+      );
       continue;
     }
 
     if (entry.isDirectory()) {
-      await copyDirectory(sourcePath, targetPath, exclude);
-    } else {
-      await fs.copyFile(sourcePath, targetPath);
+      await copyDirectory(runtime, sourcePath, targetPath, exclude);
+      continue;
     }
+
+    await runtime.fs.copyFile(sourcePath, targetPath);
   }
 }

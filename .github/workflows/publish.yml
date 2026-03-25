@@ -1,4 +1,4 @@
-name: Publish Package to PNPM
+name: Publish Package to NPM
 
 # Run this workflow on pushes to the main branch
 on:
@@ -12,7 +12,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  publish-pnpm:
+  publish:
     name: Bump version and publish package
     runs-on: ubuntu-latest
     # Grant permissions for the GITHUB_TOKEN
@@ -26,42 +26,25 @@ jobs:
           # Fetch all history for versioning and pushing
           fetch-depth: 0
 
-      # 1. Install pnpm using the official action
-      - name: Install pnpm
-        uses: pnpm/action-setup@v4
+      - name: Install Bun
+        uses: oven-sh/setup-bun@v2
         with:
-          version: 10 # Specify pnpm version or use 'latest'
-          run_install: false # We will run install manually later
+          bun-version: 1.3.11
 
-      # 2. Set up Node.js - pnpm needs Node
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22.x' # Specify your Node.js version
-          registry-url: 'https://registry.npmjs.org/' # Needed for auth setup for publish
-          cache: 'pnpm' # Instruct setup-node to cache pnpm dependencies
-
-      # 3. Install dependencies using pnpm
       - name: Install dependencies
-        # Uses the lockfile for reproducibility, similar to 'npm ci'
-        run: pnpm install
+        run: bun install --frozen-lockfile
 
       - name: Configure Git user
         run: |
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
 
-      # 4. Bump patch version using pnpm
       - name: Bump patch version and create commit
-        # 'pnpm version patch' works like 'npm version patch'
-        # It updates package.json, creates a commit, and creates a tag.
-        run: |
-          pnpm version patch -m "chore(release): bump version to %s [skip ci]"
+        run: npm version patch -m "chore(release): bump version to %s [skip ci]"
 
-      # 5. Run code formatting and amend the commit
       - name: Format code and amend commit
         run: |
-          pnpm check
+          bun run check
           git add .
           git commit --amend --no-edit
 
@@ -69,15 +52,10 @@ jobs:
       - name: Push changes (commit and tag)
         run: git push origin main --follow-tags
     
-      # 7. Build lib and cli
       - name: Build package
-        run: pnpm run build
+        run: bun run build
 
-      # 8. Publish package using pnpm
       - name: Publish package
-        # pnpm publish respects the .npmrc file created by setup-node for auth
-        # Add --no-git-checks if pnpm complains about the git state after the version commit
-        run: pnpm publish --access public # Use '--access public' for public packages
+        run: bun publish --access public
         env:
-          # setup-node configures auth using this token based on registry-url
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

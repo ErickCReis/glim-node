@@ -7,12 +7,13 @@ export async function getTasks() {
 }
 
 export async function getTask(id: number) {
-  return await mstask.db
+  const [task] = await mstask.db
     .select()
     .from(models.tasks)
     .where(eq(models.tasks.id, id))
-    .limit(1)
-    .then((r) => r[0]);
+    .limit(1);
+
+  return task;
 }
 
 export async function createTask({ nome }: { nome: string }) {

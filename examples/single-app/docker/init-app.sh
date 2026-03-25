@@ -1,8 +1,7 @@
 #!/bin/bash
 
-npm i -g pnpm
-pnpm i
+bun install --frozen-lockfile
 
-pnpm gn migrate:up
+bunx gn migrate:up
 
-pnpm dev
+bun dev

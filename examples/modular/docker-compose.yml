@@ -1,6 +1,6 @@
 services:
   app:
-    image: node:22-slim
+    image: oven/bun:1.3.11-slim
     working_dir: /usr/src/app/examples/modular
     depends_on:
       - db
@@ -11,7 +11,7 @@ services:
     volumes:
       - ../..:/usr/src/app
       - app_data:/usr/src/app/examples/modular/node_modules
-      - app_data:/usr/src/app/.pnpm-store
+      - bun_cache:/root/.bun/install/cache
     command: sh ./docker/init-app.sh
 
   db:
@@ -43,5 +43,6 @@ services:
 
 volumes:
   app_data:
+  bun_cache:
   db_data:
   localstack_data:

@@ -8,19 +8,45 @@ import {
 } from "@core/bin/utils";
 import { getPostgresEnv } from "@core/helpers/postgres";
 
+type RunMigrationsRuntime = {
+  createTempDrizzleConfig?: typeof createTempDrizzleConfig;
+  execCommand?: typeof execCommand;
+  getPostgresEnv?: typeof getPostgresEnv;
+  isAppStructure?: typeof isAppStructure;
+  log?: Pick<typeof log, "info" | "step">;
+};
+
+function resolveRuntime(runtime: RunMigrationsRuntime = {}) {
+  return {
+    createTempDrizzleConfig:
+      runtime.createTempDrizzleConfig ?? createTempDrizzleConfig,
+    execCommand: runtime.execCommand ?? execCommand,
+    getPostgresEnv: runtime.getPostgresEnv ?? getPostgresEnv,
+    isAppStructure: runtime.isAppStructure ?? isAppStructure,
+    log: runtime.log ?? log,
+  };
+}
+
 export async function runMigrations(moduleInput: string) {
-  log.step("Aplicando migrations");
+  return runMigrationsWithRuntime(moduleInput);
+}
 
-  // Verificar se estamos trabalhando com a nova estrutura de app
-  const isApp = await isAppStructure();
+export async function runMigrationsWithRuntime(
+  moduleInput: string,
+  runtime: RunMigrationsRuntime = {},
+) {
+  const resolvedRuntime = resolveRuntime(runtime);
+  resolvedRuntime.log.step("Aplicando migrations");
 
-  // Na estrutura de app, não precisamos passar o namespace para getPostgresEnv
-  const dbEnv = isApp ? getPostgresEnv() : getPostgresEnv(moduleInput);
+  const isApp = await resolvedRuntime.isAppStructure();
+  const dbEnv = isApp
+    ? resolvedRuntime.getPostgresEnv()
+    : resolvedRuntime.getPostgresEnv(moduleInput);
   const outPath = isApp
     ? "./src/db/migrations"
     : `./modules/${moduleInput}/db/migrations`;
 
-  const drizzleConfigPath = await createTempDrizzleConfig({
+  const drizzleConfigPath = await resolvedRuntime.createTempDrizzleConfig({
     dialect: "postgresql",
     dbCredentials: {
       url: dbEnv.url,
@@ -29,13 +55,14 @@ export async function runMigrations(moduleInput: string) {
   });
 
   try {
-    await execCommand("pnpm", [
+    await resolvedRuntime.execCommand("bun", [
+      "x",
       "drizzle-kit",
       "migrate",
       `--config=${drizzleConfigPath}`,
     ]);
-    log.info("Migrations aplicadas com sucesso!");
-  } catch (error) {
+    resolvedRuntime.log.info("Migrations aplicadas com sucesso!");
+  } catch {
     throw new Error("Não foi possível aplicar as migrations");
   }
 }

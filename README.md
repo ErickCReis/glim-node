@@ -12,14 +12,14 @@ A TypeScript-first toolkit for building Node.js applications with Hono.js, featu
 ## Installation
 
 ```bash
-pnpm add glim-node
+bun add glim-node
 ```
 
 ## Quick Start
 
 1. Create a new project:
 ```bash
-pnpm dlx glim-node create
+bunx glim-node create
 ```
 
 2. Start the development server:

@@ -5,12 +5,35 @@ import {
   isAppStructure,
 } from "@core/bin/utils";
 
+type GenerateMigrationRuntime = {
+  createTempDrizzleConfig?: typeof createTempDrizzleConfig;
+  execCommand?: typeof execCommand;
+  isAppStructure?: typeof isAppStructure;
+  log?: Pick<typeof log, "info" | "step">;
+};
+
+function resolveRuntime(runtime: GenerateMigrationRuntime = {}) {
+  return {
+    createTempDrizzleConfig:
+      runtime.createTempDrizzleConfig ?? createTempDrizzleConfig,
+    execCommand: runtime.execCommand ?? execCommand,
+    isAppStructure: runtime.isAppStructure ?? isAppStructure,
+    log: runtime.log ?? log,
+  };
+}
+
 export async function generateMigration(moduleInput: string) {
-  log.step("Gerando migrations");
+  return generateMigrationWithRuntime(moduleInput);
+}
 
-  // Verificar se estamos trabalhando com a nova estrutura de app
-  const isApp = await isAppStructure();
+export async function generateMigrationWithRuntime(
+  moduleInput: string,
+  runtime: GenerateMigrationRuntime = {},
+) {
+  const resolvedRuntime = resolveRuntime(runtime);
+  resolvedRuntime.log.step("Gerando migrations");
 
+  const isApp = await resolvedRuntime.isAppStructure();
   const schemaPath = isApp
     ? "./src/db/models/"
     : `./modules/${moduleInput}/db/models/`;
@@ -18,20 +41,21 @@ export async function generateMigration(moduleInput: string) {
     ? "./src/db/migrations"
     : `./modules/${moduleInput}/db/migrations`;
 
-  const drizzleConfigPath = await createTempDrizzleConfig({
+  const drizzleConfigPath = await resolvedRuntime.createTempDrizzleConfig({
     dialect: "postgresql",
     schema: schemaPath,
     out: outPath,
   });
 
   try {
-    await execCommand("pnpm", [
+    await resolvedRuntime.execCommand("bun", [
+      "x",
       "drizzle-kit",
       "generate",
       `--config=${drizzleConfigPath}`,
     ]);
-    log.info("Migrations geradas com sucesso!");
-  } catch (error) {
+    resolvedRuntime.log.info("Migrations geradas com sucesso!");
+  } catch {
     throw new Error("Não foi possível gerar as migrations");
   }
 }

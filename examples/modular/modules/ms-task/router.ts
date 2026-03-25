@@ -3,8 +3,8 @@ import { client, mstask } from "@ms-task";
 import {
   createTaskUseCase,
   deleteTaskUseCase,
-  getTaskUseCase,
   getTasksUseCase,
+  getTaskUseCase,
 } from "@ms-task/use-cases/tasks";
 import {
   authMiddleware,
