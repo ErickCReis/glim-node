@@ -1,3 +1,4 @@
+import type { MiddlewareHandler } from "hono";
 import { createMiddleware } from "hono/factory";
 import { HTTPException } from "hono/http-exception";
 
@@ -9,16 +10,18 @@ export type Auth = {
   nickname: string;
 };
 
-type Context = {
+type AuthContext = {
   Variables: { auth: Auth };
 };
 
-export const authMiddleware = createMiddleware<Context>(async (c, next) => {
-  const authHeader = c.req.header(AUTH_HEADER);
-  if (!authHeader) {
-    throw new HTTPException(401, { message: "Usuário não autenticado." });
-  }
+export const authMiddleware: MiddlewareHandler<AuthContext> = createMiddleware<AuthContext>(
+  async (c, next) => {
+    const authHeader = c.req.header(AUTH_HEADER);
+    if (!authHeader) {
+      throw new HTTPException(401, { message: "Usuário não autenticado." });
+    }
 
-  c.set("auth", JSON.parse(atob(authHeader)));
-  await next();
-});
+    c.set("auth", JSON.parse(atob(authHeader)));
+    await next();
+  },
+);

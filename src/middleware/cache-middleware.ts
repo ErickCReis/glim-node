@@ -1,17 +1,28 @@
 import { createFeature, type FeatureReturn } from "@core/_internal/features";
 import { cacheRequest, coreEnv, time } from "@core/helpers";
 import type { Auth } from "@core/middleware/auth-middleware";
+import type { MiddlewareHandler } from "hono";
 import { createMiddleware } from "hono/factory";
 
 const CACHE_MIDDLEWARE_HEADER = "x-cache-middleware";
 
-type Context = {
+type CacheDriverContext = {
   Variables: { driver: FeatureReturn<"cache.redis"> | undefined };
 };
 
-export async function cacheDriverMiddleware() {
+type CacheMiddlewareContext<ByUser extends boolean = false> = {
+  Variables: {
+    driver: FeatureReturn<"cache.redis">;
+  } & (ByUser extends true
+    ? {
+        auth: Auth;
+      }
+    : Record<string, never>);
+};
+
+export async function cacheDriverMiddleware(): Promise<MiddlewareHandler<CacheDriverContext>> {
   if (!coreEnv.CACHE_MIDDLEWARE) {
-    return createMiddleware<Context>((_, next) => next());
+    return createMiddleware<CacheDriverContext>((_, next) => next());
   }
 
   const driver = await createFeature(
@@ -21,17 +32,21 @@ export async function cacheDriverMiddleware() {
     { namespace: "middleware" },
     "default",
   );
-  return createMiddleware<Context>(async (c, next) => {
+  return createMiddleware<CacheDriverContext>(async (c, next) => {
     c.set("driver", driver);
     await next();
   });
 }
 
-export function cacheMiddleware(ttl = time.untilEndOfDay()) {
+export function cacheMiddleware(
+  ttl: number = time.untilEndOfDay(),
+): MiddlewareHandler<CacheMiddlewareContext> {
   return _cacheMiddleware({ ttl });
 }
 
-export function cacheMiddlewareByUser(ttl = time.untilEndOfDay()) {
+export function cacheMiddlewareByUser(
+  ttl: number = time.untilEndOfDay(),
+): MiddlewareHandler<CacheMiddlewareContext<true>> {
   return _cacheMiddleware({ ttl, byUser: true });
 }
 
@@ -41,16 +56,8 @@ function _cacheMiddleware<ByUser extends boolean = false>({
 }: {
   ttl: number;
   byUser?: ByUser;
-}) {
-  return createMiddleware<{
-    Variables: {
-      driver: FeatureReturn<"cache.redis">;
-    } & (ByUser extends true
-      ? {
-          auth: Auth;
-        }
-      : Record<string, never>);
-  }>(async (c, next) => {
+}): MiddlewareHandler<CacheMiddlewareContext<ByUser>> {
+  return createMiddleware<CacheMiddlewareContext<ByUser>>(async (c, next) => {
     if (!coreEnv.CACHE_MIDDLEWARE) {
       return next();
     }

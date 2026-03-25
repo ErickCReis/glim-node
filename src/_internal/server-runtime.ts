@@ -1,7 +1,7 @@
 import type { ImAlive } from "@core/_internal/im-alive";
 import { errorHandler } from "@core/exceptions/error-handler";
-import type { GnApp } from "@core/gn-app";
-import type { GnModule } from "@core/gn-module";
+import type { AnyGnApp } from "@core/gn-app";
+import type { AnyGnModule } from "@core/gn-module";
 import { coreEnv } from "@core/helpers/env";
 import type { Logger } from "@core/helpers/logger";
 import { createLogger } from "@core/helpers/logger";
@@ -19,6 +19,9 @@ import { validator } from "hono/validator";
 type ServerOptions = {
   mainLogger?: Logger;
 };
+
+type ServerModule = AnyGnModule | AnyGnApp;
+type ServerModulesInput = ReadonlyArray<ServerModule> | ServerModule;
 
 type ServerRuntime = {
   createLogger?: typeof createLogger;
@@ -41,7 +44,7 @@ function resolveRuntime(runtime: ServerRuntime = {}) {
 }
 
 export async function createServerAppWithRuntime(
-  modules: Array<GnModule> | GnApp,
+  modules: ServerModulesInput,
   options: ServerOptions = {},
   runtime: ServerRuntime = {},
 ) {
@@ -70,7 +73,7 @@ export async function createServerAppWithRuntime(
       "/im-alive/:resource?",
       loggerMiddleware({ logger: mainLogger }),
       validator("param", (value, c) => {
-        const validResources = ["db", "cache", "storage"] as const;
+        const validResources = ["db", "cache", "storage", "notification", "http"] as const;
         const resource = value.resource as (typeof validResources)[number] | undefined;
         if (resource && !validResources.includes(resource)) {
           return c.notFound();
@@ -107,20 +110,24 @@ export async function createServerAppWithRuntime(
   const moduleArray = Array.isArray(modules) ? modules : [modules];
 
   for (const module of moduleArray) {
-    if (!module["~router"]) {
+    const router = module["~router"];
+    const namespace = "namespace" in module ? module.namespace : undefined;
+
+    if (!router) {
       resolvedRuntime.console.error(
-        `Nenhum router fornecido${module.namespace ? ` para ${module.namespace}` : ""}`,
+        `Nenhum router fornecido${namespace ? ` para ${namespace}` : ""}`,
       );
       resolvedRuntime.exit(1);
+      continue;
     }
 
-    if ("namespace" in module && module.namespace) {
+    if (namespace) {
       app
-        .use(`/${module.namespace}/*`, loggerMiddleware(module), async (c, next) => {
+        .use(`/${namespace}/*`, loggerMiddleware(module), async (c, next) => {
           module["~context"] = c;
           await next();
         })
-        .route("/", module["~router"]);
+        .route("/", router);
       continue;
     }
 
@@ -129,7 +136,7 @@ export async function createServerAppWithRuntime(
         module["~context"] = c;
         await next();
       })
-      .route("/", module["~router"]);
+      .route("/", router);
   }
 
   app.onError((_, c) => errorHandler(c));
@@ -138,7 +145,7 @@ export async function createServerAppWithRuntime(
 }
 
 export async function startWithRuntime(
-  modules: Array<GnModule> | GnApp,
+  modules: ServerModulesInput,
   runtime: ServerRuntime = {},
 ) {
   const resolvedRuntime = resolveRuntime(runtime);

@@ -1,5 +1,6 @@
 import type { Logger } from "@core/helpers/logger";
 import { getConnInfo } from "@hono/node-server/conninfo";
+import type { MiddlewareHandler } from "hono";
 import { createMiddleware } from "hono/factory";
 
 type Context = {
@@ -14,7 +15,7 @@ declare module "hono" {
   }
 }
 
-export function loggerMiddleware(obj: { logger: Logger }) {
+export function loggerMiddleware(obj: { logger: Logger }): MiddlewareHandler<Context> {
   return createMiddleware<Context>(async (c, next) => {
     obj.logger = obj.logger.child({ "trace-id": c.var.requestId });
     c.set("logger", obj.logger);

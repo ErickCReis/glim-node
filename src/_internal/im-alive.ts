@@ -1,13 +1,13 @@
 import fs from "node:fs";
 import { join } from "node:path";
-import type { Feature, FeatureImAlive, FeatureType } from "@core/_internal/features";
+import type { FeatureImAlive, FeatureType } from "@core/_internal/features";
 export type ImAlive = {
   status: "alive" | "dead";
   latency: number;
 };
 
 export type ImAliveFn = (
-  resource: Feature | "all",
+  resource: FeatureType | "all",
   force: boolean,
 ) => Promise<Record<string, ImAlive> | readonly ["OK"]>;
 

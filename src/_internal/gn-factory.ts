@@ -1,9 +1,8 @@
 import {
   createFeature,
-  type Feature,
   type FeatureConfig,
   type FeatureImAlive,
-  type FeatureReturn,
+  type FeatureResultMap,
 } from "@core/_internal/features";
 import { createImAlive, type ImAliveFn } from "@core/_internal/im-alive";
 import { cacheRequest } from "@core/helpers/cache-request";
@@ -38,15 +37,7 @@ type GnBase = {
   ) => Promise<void>;
 };
 
-type ConfigReturnType<T extends FeatureConfig> = T extends {
-  type: infer K extends Feature;
-}
-  ? FeatureReturn<K>
-  : never;
-
-type FactoryResult<TConfig extends Record<string, FeatureConfig>> = {
-  [K in keyof TConfig]: ConfigReturnType<TConfig[K]>;
-};
+type FactoryResult<TConfig extends Record<string, FeatureConfig>> = FeatureResultMap<TConfig>;
 
 function resolveRuntime(runtime: GnFactoryRuntime = {}) {
   return {
@@ -112,7 +103,7 @@ async function resolveFeatures<const TConfig extends Record<string, FeatureConfi
     const alias = key === featureType ? "default" : key;
     const driver = await runtime.createFeature(
       value.type,
-      value.config as never,
+      (value.config ?? {}) as never,
       base as never,
       alias,
     );
@@ -120,7 +111,7 @@ async function resolveFeatures<const TConfig extends Record<string, FeatureConfi
     features[key] = driver as FactoryResult<TConfig>[typeof key];
     imAliveFeatures[key] = {
       type: value.type,
-      driver: driver as FeatureReturn<Feature>,
+      driver: driver as FeatureImAlive["driver"],
     } as FeatureImAlive;
   }
 

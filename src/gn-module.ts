@@ -1,4 +1,8 @@
-import type { FeatureConfig, FeatureConfigReturn } from "@core/_internal/features";
+import type {
+  FeatureConfigShape,
+  FeatureResultMap,
+  ResolvedFeatureConfigMap,
+} from "@core/_internal/features";
 import { createModuleWithRuntime } from "@core/_internal/gn-factory";
 import type { ImAliveFn } from "@core/_internal/im-alive";
 import type { cacheRequest } from "@core/helpers/cache-request";
@@ -29,28 +33,25 @@ export type BaseModule<TNamespace extends string = string> = {
   ) => Promise<void>;
 };
 
-// Type for the module configuration
-type ModuleConfig = {
-  [key: string]: FeatureConfig;
-} & {
-  [K in keyof BaseModule]?: never;
-};
-
-// Get the return type for a specific feature config
-type ConfigReturnType<T extends FeatureConfig> = FeatureConfigReturn<T>;
-
-// Type for the result after processing
-type ModuleResult<T extends ModuleConfig> = {
-  [K in keyof T]: ConfigReturnType<T[K]>;
-};
+export type ModuleConfigShape<TConfig extends Record<string, unknown>> = FeatureConfigShape<
+  TConfig,
+  keyof BaseModule
+>;
+export type ModuleResult<TConfig extends Record<string, unknown>> = FeatureResultMap<TConfig>;
+export type GnModule<
+  TNamespace extends string = string,
+  TConfig extends Record<string, unknown> = Record<never, never>,
+> = BaseModule<TNamespace> & ModuleResult<TConfig>;
+export type AnyGnModule = BaseModule<string>;
 
 export async function createModule<
   const Namespace extends string,
-  const Config extends ModuleConfig,
->(namespace: Namespace, config: Config): Promise<BaseModule<Namespace> & ModuleResult<Config>> {
-  return createModuleWithRuntime(namespace, config) as Promise<
-    BaseModule<Namespace> & ModuleResult<Config>
+  const Config extends Record<string, unknown>,
+>(
+  namespace: Namespace,
+  config: Config & ModuleConfigShape<Config>,
+): Promise<GnModule<Namespace, Config>> {
+  return createModuleWithRuntime(namespace, config as ResolvedFeatureConfigMap<Config>) as Promise<
+    GnModule<Namespace, Config>
   >;
 }
-
-export type GnModule = Awaited<ReturnType<typeof createModule>>;

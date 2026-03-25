@@ -1,4 +1,8 @@
-import type { FeatureConfig, FeatureConfigReturn } from "@core/_internal/features";
+import type {
+  FeatureConfigShape,
+  FeatureResultMap,
+  ResolvedFeatureConfigMap,
+} from "@core/_internal/features";
 import { createAppWithRuntime } from "@core/_internal/gn-factory";
 import type { ImAliveFn } from "@core/_internal/im-alive";
 import type { cacheRequest } from "@core/helpers/cache-request";
@@ -28,25 +32,17 @@ export type BaseApp = {
   ) => Promise<void>;
 };
 
-// Type for the app configuration
-type AppConfig = {
-  [key: string]: FeatureConfig;
-} & {
-  [K in keyof BaseApp]?: never;
-};
+export type AppConfigShape<TConfig extends Record<string, unknown>> = FeatureConfigShape<
+  TConfig,
+  keyof BaseApp
+>;
+export type AppResult<TConfig extends Record<string, unknown>> = FeatureResultMap<TConfig>;
+export type GnApp<TConfig extends Record<string, unknown> = Record<never, never>> = BaseApp &
+  AppResult<TConfig>;
+export type AnyGnApp = BaseApp;
 
-// Get the return type for a specific feature config
-type ConfigReturnType<T extends FeatureConfig> = FeatureConfigReturn<T>;
-
-// Type for the result after processing
-type AppResult<T extends AppConfig> = {
-  [K in keyof T]: ConfigReturnType<T[K]>;
-};
-
-export async function createApp<const Config extends AppConfig>(
-  config: Config,
-): Promise<BaseApp & AppResult<Config>> {
-  return createAppWithRuntime(config) as Promise<BaseApp & AppResult<Config>>;
+export async function createApp<const Config extends Record<string, unknown>>(
+  config: Config & AppConfigShape<Config>,
+): Promise<GnApp<Config>> {
+  return createAppWithRuntime(config as ResolvedFeatureConfigMap<Config>) as Promise<GnApp<Config>>;
 }
-
-export type GnApp = Awaited<ReturnType<typeof createApp>>;

@@ -1,18 +1,33 @@
-import { ListTopicsCommand, PublishCommand, SNSClient } from "@aws-sdk/client-sns";
+import {
+  ListTopicsCommand,
+  PublishCommand,
+  SNSClient,
+  type ListTopicsCommandOutput,
+} from "@aws-sdk/client-sns";
 import { formatEnvKey } from "@core/helpers/utils";
 import { z } from "zod";
 
-export type SNS = ReturnType<typeof createSNSClient>;
+type TopicName<Topics extends ReadonlyArray<string> | undefined> =
+  Topics extends ReadonlyArray<infer Topic> ? Topic & string : never;
 
-export function createSNSClient<const Topics extends ReadonlyArray<string> | undefined>(config: {
+export type SNSConfig<Topics extends ReadonlyArray<string> | undefined> = {
   region: string;
   endpoint?: string;
   accessKeyId: string;
   secretAccessKey: string;
   topics: {
-    [K in Topics extends ReadonlyArray<infer U> ? U : never]: string;
+    [K in TopicName<Topics>]: string;
   };
-}) {
+};
+
+export type SNS<Topics extends ReadonlyArray<string> | undefined = ReadonlyArray<string>> = {
+  publish: (topic: TopicName<Topics>, message: string) => Promise<void>;
+  listTopics: () => Promise<ListTopicsCommandOutput>;
+};
+
+export function createSNSClient<const Topics extends ReadonlyArray<string> | undefined>(
+  config: SNSConfig<Topics>,
+): SNS<Topics> {
   const snsClient = new SNSClient({
     region: config.region,
     endpoint: config.endpoint,
@@ -42,11 +57,11 @@ export function createSNSClient<const Topics extends ReadonlyArray<string> | und
   };
 }
 
-export function getSNSEnv(
+export function getSNSEnv<const Topics extends ReadonlyArray<string> = ReadonlyArray<string>>(
   namespace?: string,
   alias = "default",
-  topicNames: ReadonlyArray<string> = [],
-) {
+  topicNames: Topics = [] as unknown as Topics,
+): SNSConfig<Topics> {
   const key = formatEnvKey("NOTIFICATION", namespace, alias);
   const snsEnv = z
     .object({
@@ -71,10 +86,13 @@ export function getSNSEnv(
   const secretAccessKey = snsEnv[`${key}_SECRET_KEY`] as string;
   const topics = topicNames.reduce(
     (acc, topic) => {
-      acc[topic] = snsEnv[`${key}_TOPIC_${topic.replaceAll("-", "_").toUpperCase()}_ARN`] as string;
+      const topicKey = topic as TopicName<Topics>;
+      acc[topicKey] = snsEnv[
+        `${key}_TOPIC_${topic.replaceAll("-", "_").toUpperCase()}_ARN`
+      ] as string;
       return acc;
     },
-    {} as Record<string, string>,
+    {} as SNSConfig<Topics>["topics"],
   );
 
   return {

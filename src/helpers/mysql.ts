@@ -1,13 +1,26 @@
 import { formatEnvKey } from "@core/helpers/utils";
 import { drizzle } from "drizzle-orm/mysql2";
+import type { MySql2Database } from "drizzle-orm/mysql2";
 import mysql from "mysql2/promise";
 import { z } from "zod";
 
-export function createMysqlClient(config: mysql.PoolOptions) {
+export type MysqlClient = MySql2Database<Record<string, never>> & {
+  $client: mysql.Pool;
+};
+
+export type MysqlEnv = {
+  host: string;
+  database: string;
+  username: string;
+  password: string;
+  url: string;
+};
+
+export function createMysqlClient(config: mysql.PoolOptions): MysqlClient {
   return drizzle(mysql.createPool(config));
 }
 
-export function getMysqlEnv(namespace?: string, alias = "default") {
+export function getMysqlEnv(namespace?: string, alias = "default"): MysqlEnv {
   const key = formatEnvKey("DB", namespace, alias);
   const dbEnv = z
     .object({

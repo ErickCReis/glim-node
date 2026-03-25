@@ -1,16 +1,26 @@
-import { GetObjectCommand, ListBucketsCommand, S3Client } from "@aws-sdk/client-s3";
+import {
+  GetObjectCommand,
+  ListBucketsCommand,
+  S3Client,
+  type ListBucketsCommandOutput,
+} from "@aws-sdk/client-s3";
 import { formatEnvKey } from "@core/helpers/utils";
 import { z } from "zod";
 
-export type S3 = ReturnType<typeof createS3Client>;
-
-export function createS3Client(config: {
+export type S3Config = {
   region: string;
   endpoint?: string;
   bucket: string;
   accessKeyId: string;
   secretAccessKey: string;
-}) {
+};
+
+export type S3 = {
+  listBuckets: () => Promise<ListBucketsCommandOutput["Buckets"]>;
+  getObject: (key: string) => Promise<string | undefined>;
+};
+
+export function createS3Client(config: S3Config): S3 {
   const s3Client = new S3Client({
     region: config.region,
     endpoint: config.endpoint,
@@ -45,7 +55,7 @@ export function createS3Client(config: {
   };
 }
 
-export function getS3Env(namespace?: string, alias = "default") {
+export function getS3Env(namespace?: string, alias = "default"): S3Config {
   const key = formatEnvKey("STORAGE", namespace, alias);
   const s3Env = z
     .object({

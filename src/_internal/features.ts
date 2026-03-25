@@ -1,130 +1,149 @@
 import type { BaseApp } from "@core/gn-app";
 import type { BaseModule } from "@core/gn-module";
-import type { createHttpClient } from "@core/helpers/http";
-import type { createMysqlClient } from "@core/helpers/mysql";
-import type { createPostgresClient } from "@core/helpers/postgres";
+import type { HttpClient } from "@core/helpers/http";
+import type { MysqlClient } from "@core/helpers/mysql";
+import type { PostgresClient } from "@core/helpers/postgres";
 import type { Redis } from "@core/helpers/redis";
-import type { createS3Client } from "@core/helpers/s3";
-import type { createSNSClient } from "@core/helpers/sns";
+import type { S3 } from "@core/helpers/s3";
+import type { SNS } from "@core/helpers/sns";
 import type { Prettify } from "@core/helpers/types";
 
 type ModuleOrApp = BaseModule | BaseApp;
+type EmptyConfig = Record<never, never>;
 
-const features = {
-  "db.postgres": async ({ module, alias = "default" }: { module: ModuleOrApp; alias?: string }) => {
-    const postgres = await import("@core/helpers/postgres");
-    const dbEnv = postgres.getPostgresEnv(
-      "namespace" in module ? module.namespace : undefined,
-      alias,
-    );
-    return postgres.createPostgresClient({ connectionString: dbEnv.url });
-  },
+type FeatureConfigMap = {
+  "db.postgres": EmptyConfig;
+  "db.mysql": EmptyConfig;
+  "cache.redis": EmptyConfig;
+  "storage.s3": EmptyConfig;
+  "notification.sns": {
+    topics: ReadonlyArray<string>;
+  };
+  "http.webservice": EmptyConfig;
+};
 
-  "db.mysql": async ({ module, alias = "default" }: { module: ModuleOrApp; alias?: string }) => {
-    const mysql = await import("@core/helpers/mysql");
-    const dbEnv = mysql.getMysqlEnv("namespace" in module ? module.namespace : undefined, alias);
-    return mysql.createMysqlClient({ uri: dbEnv.url });
-  },
+type FeatureReturnMap = {
+  "db.postgres": PostgresClient;
+  "db.mysql": MysqlClient;
+  "cache.redis": Redis;
+  "storage.s3": S3;
+  "http.webservice": HttpClient;
+};
 
-  "cache.redis": async ({ module, alias = "default" }: { module: ModuleOrApp; alias?: string }) => {
-    const redis = await import("@core/helpers/redis");
-    const redisEnv = redis.getRedisEnv("namespace" in module ? module.namespace : undefined, alias);
-    return redis.createRedisClient(redisEnv);
-  },
+type NotificationTopics<TConfig> = TConfig extends {
+  topics: infer Topics extends ReadonlyArray<string>;
+}
+  ? Topics
+  : ReadonlyArray<string>;
 
-  "storage.s3": async ({ module, alias = "default" }: { module: ModuleOrApp; alias?: string }) => {
-    const s3 = await import("@core/helpers/s3");
-    const s3Env = s3.getS3Env("namespace" in module ? module.namespace : undefined, alias);
-    return s3.createS3Client(s3Env);
-  },
+type FeatureConfigEntry<F extends Feature> = keyof FeatureConfigMap[F] extends never
+  ? {
+      type: F;
+      config?: never;
+    }
+  : {
+      type: F;
+      config: Prettify<FeatureConfigMap[F]>;
+    };
 
-  "notification.sns": async <const Topics extends ReadonlyArray<string>>({
-    module,
-    alias = "default",
-    topics,
-  }: {
-    module: ModuleOrApp;
-    alias?: string;
-    topics: Topics;
-  }) => {
-    const sns = await import("@core/helpers/sns");
-    const snsEnv = sns.getSNSEnv(
-      "namespace" in module ? module.namespace : undefined,
-      alias,
-      topics,
-    );
-    return sns.createSNSClient(snsEnv);
-  },
+type FeatureConfigValueFor<F extends Feature, TConfig extends FeatureConfig> = TConfig extends {
+  config: infer Config extends FeatureRuntimeConfig<F>;
+}
+  ? Config
+  : FeatureRuntimeConfig<F>;
 
-  "http.webservice": async ({
-    module,
-    alias = "default",
-  }: {
-    module: ModuleOrApp;
-    alias?: string;
-  }) => {
-    const http = await import("@core/helpers/http");
-    const httpEnv = http.getHttpEnv("namespace" in module ? module.namespace : undefined, alias);
-
-    return http.createHttpClient(httpEnv);
-  },
-} as const;
-
-export type FeaturesType = typeof features;
-export type Feature = keyof FeaturesType;
+export type Feature = keyof FeatureConfigMap;
 export type FeatureType = Feature extends `${infer A}.${string}` ? A : never;
-export type FeatureReturn<F extends Feature> = Awaited<ReturnType<FeaturesType[F]>>;
+export type FeatureRuntimeConfig<F extends Feature> = Prettify<FeatureConfigMap[F]>;
+export type FeatureReturn<
+  F extends Feature,
+  Config extends FeatureRuntimeConfig<F> = FeatureRuntimeConfig<F>,
+> = F extends keyof FeatureReturnMap
+  ? FeatureReturnMap[F]
+  : F extends "notification.sns"
+    ? SNS<NotificationTopics<Config>>
+    : never;
 
-type FeatureParams<F extends Feature, K = FeaturesType[F]> = K extends (arg: infer P) => unknown
-  ? keyof P extends "module" | "alias"
-    ? { config?: never }
-    : { config: Prettify<Omit<P, "module" | "alias">> }
-  : { config?: never };
+export type FeatureConfig = {
+  [F in Feature]: FeatureConfigEntry<F>;
+}[Feature];
 
-// Discriminated union for feature configs
-export type FeatureConfig =
-  | ({ type: "db.postgres" } & FeatureParams<"db.postgres">)
-  | ({ type: "db.mysql" } & FeatureParams<"db.mysql">)
-  | ({ type: "cache.redis" } & FeatureParams<"cache.redis">)
-  | ({ type: "storage.s3" } & FeatureParams<"storage.s3">)
-  | ({ type: "notification.sns" } & FeatureParams<"notification.sns">)
-  | ({ type: "http.webservice" } & FeatureParams<"http.webservice">);
+export type ValidFeatureConfig<T> = Extract<T, FeatureConfig>;
+export type FeatureConfigShape<
+  TConfig extends Record<string, unknown>,
+  TReservedKeys extends PropertyKey,
+> = {
+  [K in keyof TConfig]: K extends TReservedKeys
+    ? never
+    : TConfig[K] extends FeatureConfig
+      ? TConfig[K]
+      : never;
+};
+export type FeatureResultMap<TConfig extends Record<string, unknown>> = {
+  [K in keyof TConfig]: FeatureConfigReturn<ValidFeatureConfig<TConfig[K]>>;
+};
+export type ResolvedFeatureConfigMap<TConfig extends Record<string, unknown>> = {
+  [K in keyof TConfig]: ValidFeatureConfig<TConfig[K]>;
+};
 
 export type FeatureConfigReturn<T extends FeatureConfig> = T extends {
-  type: "db.postgres";
+  type: infer F extends Feature;
 }
-  ? ReturnType<typeof createPostgresClient>
-  : T extends { type: "db.mysql" }
-    ? ReturnType<typeof createMysqlClient>
-    : T extends { type: "cache.redis" }
-      ? Redis
-      : T extends { type: "storage.s3" }
-        ? ReturnType<typeof createS3Client>
-        : T extends {
-              type: "notification.sns";
-              config: {
-                topics: infer Topics extends ReadonlyArray<string>;
-              };
-            }
-          ? ReturnType<typeof createSNSClient<Topics>>
-          : T extends { type: "http.webservice" }
-            ? ReturnType<typeof createHttpClient>
-            : never;
+  ? FeatureReturn<F, FeatureConfigValueFor<F, T>>
+  : never;
 
-export type FeatureImAlive =
-  | { type: "db.postgres"; driver: FeatureReturn<"db.postgres"> }
-  | { type: "db.mysql"; driver: FeatureReturn<"db.mysql"> }
-  | { type: "cache.redis"; driver: FeatureReturn<"cache.redis"> }
-  | { type: "storage.s3"; driver: FeatureReturn<"storage.s3"> }
-  | { type: "notification.sns"; driver: FeatureReturn<"notification.sns"> }
-  | { type: "http.webservice"; driver: FeatureReturn<"http.webservice"> };
+export type FeatureImAlive = {
+  [F in Feature]: {
+    type: F;
+    driver: FeatureReturn<F>;
+  };
+}[Feature];
 
-export function createFeature<F extends Feature>(
+export async function createFeature<
+  const F extends Feature,
+  const Config extends FeatureRuntimeConfig<F>,
+>(
   feature: F,
-  config: FeatureParams<F>,
+  config: Config,
   module: ModuleOrApp,
   alias = "default",
-): FeatureReturn<F> {
-  // @ts-expect-error
-  return features[feature]({ module, alias, ...config });
+): Promise<FeatureReturn<F, Config>> {
+  const namespace = "namespace" in module ? module.namespace : undefined;
+
+  switch (feature) {
+    case "db.postgres": {
+      const postgres = await import("@core/helpers/postgres");
+      const dbEnv = postgres.getPostgresEnv(namespace, alias);
+      return postgres.createPostgresClient({ connectionString: dbEnv.url }) as FeatureReturn<
+        F,
+        Config
+      >;
+    }
+    case "db.mysql": {
+      const mysql = await import("@core/helpers/mysql");
+      const dbEnv = mysql.getMysqlEnv(namespace, alias);
+      return mysql.createMysqlClient({ uri: dbEnv.url }) as FeatureReturn<F, Config>;
+    }
+    case "cache.redis": {
+      const redis = await import("@core/helpers/redis");
+      const redisEnv = redis.getRedisEnv(namespace, alias);
+      return redis.createRedisClient(redisEnv) as FeatureReturn<F, Config>;
+    }
+    case "storage.s3": {
+      const s3 = await import("@core/helpers/s3");
+      const s3Env = s3.getS3Env(namespace, alias);
+      return s3.createS3Client(s3Env) as FeatureReturn<F, Config>;
+    }
+    case "notification.sns": {
+      const sns = await import("@core/helpers/sns");
+      const snsConfig = config as unknown as FeatureRuntimeConfig<"notification.sns">;
+      const snsEnv = sns.getSNSEnv(namespace, alias, snsConfig.topics);
+      return sns.createSNSClient(snsEnv) as FeatureReturn<F, Config>;
+    }
+    case "http.webservice": {
+      const http = await import("@core/helpers/http");
+      const httpEnv = http.getHttpEnv(namespace, alias);
+      return http.createHttpClient(httpEnv) as FeatureReturn<F, Config>;
+    }
+  }
 }

@@ -1,7 +1,8 @@
+import type { MiddlewareHandler } from "hono";
 import { coreEnv } from "@core/helpers/env";
 import { cors } from "hono/cors";
 
-export function corsMiddleware() {
+export function corsMiddleware(): MiddlewareHandler {
   return cors({
     origin: coreEnv.APP_CORS_ORIGIN,
     allowHeaders: [

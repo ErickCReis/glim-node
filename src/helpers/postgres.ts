@@ -1,13 +1,26 @@
 import { formatEnvKey } from "@core/helpers/utils";
 import { drizzle } from "drizzle-orm/node-postgres";
+import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 import pg from "pg";
 import { z } from "zod";
 
-export function createPostgresClient(config: pg.PoolConfig) {
+export type PostgresClient = NodePgDatabase<Record<string, never>> & {
+  $client: pg.Pool;
+};
+
+export type PostgresEnv = {
+  host: string;
+  database: string;
+  username: string;
+  password: string;
+  url: string;
+};
+
+export function createPostgresClient(config: pg.PoolConfig): PostgresClient {
   return drizzle(new pg.Pool(config));
 }
 
-export function getPostgresEnv(namespace?: string, alias = "default") {
+export function getPostgresEnv(namespace?: string, alias = "default"): PostgresEnv {
   const key = formatEnvKey("DB", namespace, alias);
   const dbEnv = z
     .object({
