@@ -138,7 +138,7 @@ function handleError(error: unknown, command?: string) {
       : error.message;
     log.error(message);
   } else {
-    log.error(`Erro inesperado: ${error}`);
+    log.error(`Erro inesperado: ${String(error)}`);
   }
   process.exit(1);
 }

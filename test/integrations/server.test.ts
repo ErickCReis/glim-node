@@ -19,9 +19,9 @@ describe("server integrations", () => {
       },
     );
 
-    mock.module("@hono/node-server", () => ({ serve }));
-    mock.module("hono/dev", () => ({ showRoutes: mock(() => undefined) }));
-    mock.module("pino", () => ({
+    await mock.module("@hono/node-server", () => ({ serve }));
+    await mock.module("hono/dev", () => ({ showRoutes: mock(() => undefined) }));
+    await mock.module("pino", () => ({
       default: () => ({
         child: () => ({ info: () => undefined, error: () => undefined }),
         info: () => undefined,
@@ -129,7 +129,7 @@ describe("server integrations", () => {
         APP_CORS_ORIGIN: "*",
       },
       async () => {
-        await expect(
+        expect(
           createServerApp(
             [
               {

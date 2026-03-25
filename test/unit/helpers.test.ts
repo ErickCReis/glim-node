@@ -195,7 +195,7 @@ describe("helpers", () => {
   });
 
   it("configures the logger from env", async () => {
-    mock.module("pino", () => ({
+    await mock.module("pino", () => ({
       default: (options: unknown) => options,
     }));
 

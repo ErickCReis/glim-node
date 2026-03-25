@@ -99,7 +99,7 @@ describe("createProjectWithRuntime", () => {
       await mkdir(path.join(templatesDir, "single-app"), { recursive: true });
       await mkdir(path.join(targetRoot, "acme-app"));
 
-      await expect(
+      expect(
         createProjectWithRuntime("acme-app", {
           cwd: () => targetRoot,
           getTemplatesDir: () => templatesDir,

@@ -21,7 +21,7 @@ describe("createImAlive", () => {
       },
     );
 
-    await expect(imAlive("all", false)).resolves.toEqual(["OK"]);
+    expect(await imAlive("all", false)).toEqual(["OK"]);
     expect(execute).not.toHaveBeenCalled();
     expect(appendFileSync).toHaveBeenCalledWith("/tmp/glim/im-alive.log", "42\n");
   });
@@ -51,7 +51,7 @@ describe("createImAlive", () => {
         hrtime: Object.assign(
           ((previous?: [number, number]) =>
             previous ? [0, 50_000_000] : [0, 0]) as typeof process.hrtime,
-          { bigint: process.hrtime.bigint },
+          { bigint: () => process.hrtime.bigint() },
         ),
         now: () => 99,
       },

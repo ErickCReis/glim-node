@@ -10,7 +10,7 @@ afterEach(() => {
 
 describe("server runtime", () => {
   it("builds a testable Hono app without external server dependencies", async () => {
-    mock.module("@hono/node-server", () => ({
+    await mock.module("@hono/node-server", () => ({
       serve: mock(() => undefined),
     }));
 
@@ -56,7 +56,7 @@ describe("server runtime", () => {
   });
 
   it("uses the injected exit strategy when a router is missing", async () => {
-    mock.module("@hono/node-server", () => ({
+    await mock.module("@hono/node-server", () => ({
       serve: mock(() => undefined),
     }));
 
@@ -74,7 +74,7 @@ describe("server runtime", () => {
         });
         const error = mock(() => undefined);
 
-        await expect(
+        expect(
           createServerAppWithRuntime(
             [
               {
@@ -105,7 +105,7 @@ describe("server runtime", () => {
   });
 
   it("delegates startup to the injected server runtime", async () => {
-    mock.module("@hono/node-server", () => ({
+    await mock.module("@hono/node-server", () => ({
       serve: mock(() => undefined),
     }));
 

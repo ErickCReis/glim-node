@@ -63,7 +63,7 @@ describe("migration commands", () => {
   });
 
   it("wraps command failures with stable error messages", async () => {
-    await expect(
+    expect(
       generateMigrationWithRuntime("billing", {
         createTempDrizzleConfig: async () => "/tmp/drizzle.generate.ts",
         execCommand: mock(async () => {
@@ -77,7 +77,7 @@ describe("migration commands", () => {
       }),
     ).rejects.toThrow("Não foi possível gerar as migrations");
 
-    await expect(
+    expect(
       runMigrationsWithRuntime("billing", {
         createTempDrizzleConfig: async () => "/tmp/drizzle.migrate.ts",
         execCommand: mock(async () => {

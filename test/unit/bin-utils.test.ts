@@ -55,9 +55,7 @@ describe("bin utils", () => {
       return child as never;
     });
 
-    await expect(
-      execCommand("bun", ["test"], {}, { spawn: spawn as never }),
-    ).resolves.toBeUndefined();
+    expect(execCommand("bun", ["test"], {}, { spawn: spawn as never })).resolves.toBeUndefined();
     expect(spawn).toHaveBeenCalledWith("bun", ["test"], {
       stdio: "inherit",
     });
@@ -72,7 +70,7 @@ describe("bin utils", () => {
       return child as never;
     });
 
-    await expect(execCommand("bun", ["test"], {}, { spawn: spawn as never })).rejects.toThrow(
+    expect(execCommand("bun", ["test"], {}, { spawn: spawn as never })).rejects.toThrow(
       "Process exited with code 2",
     );
   });

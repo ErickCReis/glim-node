@@ -26,12 +26,14 @@ function getDefaultTemplatesDir() {
   return process.env.GLIM_TEMPLATES_DIR ?? path.join(import.meta.dirname, "templates");
 }
 
+const defaultExit: typeof process.exit = (code) => process.exit(code);
+
 function resolveRuntime(runtime: Partial<CreateProjectRuntime> = {}): CreateProjectRuntime {
   return {
     cancel: runtime.cancel ?? cancel,
     cwd: runtime.cwd ?? (() => process.cwd()),
     execCommand: runtime.execCommand ?? execCommand,
-    exit: runtime.exit ?? process.exit,
+    exit: runtime.exit ?? defaultExit,
     fs: runtime.fs ?? fs,
     getTemplatesDir: runtime.getTemplatesDir ?? getDefaultTemplatesDir,
     isCancel: runtime.isCancel ?? isCancel,

@@ -27,20 +27,20 @@ describe("core integrations", () => {
       hdel: mock(async () => 1),
     };
 
-    mock.module("pino", () => ({
+    await mock.module("pino", () => ({
       default: () => logger,
     }));
-    mock.module("pg", () => ({
+    await mock.module("pg", () => ({
       default: {
         Pool: class {
           constructor(public config: unknown) {}
         },
       },
     }));
-    mock.module("drizzle-orm/node-postgres", () => ({
+    await mock.module("drizzle-orm/node-postgres", () => ({
       drizzle: mock(() => postgresDriver),
     }));
-    mock.module("@aws-sdk/client-sns", () => ({
+    await mock.module("@aws-sdk/client-sns", () => ({
       SNSClient: class {
         send = snsSend;
       },
@@ -122,7 +122,7 @@ describe("core integrations", () => {
       new Response(null, { status: 200 }),
     );
 
-    mock.module("pino", () => ({
+    await mock.module("pino", () => ({
       default: () => logger,
     }));
 

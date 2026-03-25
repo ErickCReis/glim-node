@@ -39,7 +39,7 @@
     "check": "oxfmt && oxlint --fix && tsc --noEmit",
     "dev": "bunup --watch",
     "release": "dotenv bun publish --access public",
-    "test": "bun test && bunx tsc --project test/types/tsconfig.json --pretty false"
+    "test": "bun test && tsc --p test/types/tsconfig.json"
   },
   "dependencies": {
     "@hono/node-server": "^1.19.11",

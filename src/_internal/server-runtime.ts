@@ -32,13 +32,15 @@ type ServerRuntime = {
   console?: Pick<Console, "error" | "log">;
 };
 
+const defaultExit: typeof process.exit = (code) => process.exit(code);
+
 function resolveRuntime(runtime: ServerRuntime = {}) {
   return {
     createLogger: runtime.createLogger ?? createLogger,
     createCacheDriverMiddleware: runtime.createCacheDriverMiddleware ?? cacheDriverMiddleware,
     serve: runtime.serve ?? serve,
     showRoutes: runtime.showRoutes ?? showRoutes,
-    exit: runtime.exit ?? process.exit,
+    exit: runtime.exit ?? defaultExit,
     console: runtime.console ?? console,
   };
 }
@@ -144,10 +146,7 @@ export async function createServerAppWithRuntime(
   return app;
 }
 
-export async function startWithRuntime(
-  modules: ServerModulesInput,
-  runtime: ServerRuntime = {},
-) {
+export async function startWithRuntime(modules: ServerModulesInput, runtime: ServerRuntime = {}) {
   const resolvedRuntime = resolveRuntime(runtime);
   const app = await createServerAppWithRuntime(
     modules,
