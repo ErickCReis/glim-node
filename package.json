@@ -3,10 +3,10 @@
   "version": "0.0.16",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/ErickCReis/glim-node.git"
+    "url": "https://github.com/ErickCReis/glim-node.git"
   },
   "bin": {
-    "gn": "./dist/bin/index.js"
+    "gn": "dist/bin/index.js"
   },
   "workspaces": [
     "examples/*"

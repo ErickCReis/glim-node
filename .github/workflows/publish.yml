@@ -17,6 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     # Grant permissions for the GITHUB_TOKEN
     permissions:
+      id-token: write # Allows OIDC token to be issued
       contents: write # Allows creating commits/tags and pushing
 
     steps:
@@ -53,6 +54,4 @@ jobs:
         run: bun run build
 
       - name: Publish package
-        run: bun publish --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: bunx npm@latest publish --access public --provenance
