@@ -14,19 +14,10 @@ describe("createProjectWithRuntime", () => {
         path.join(templateDir, "package.json"),
         JSON.stringify({ name: "template-name", version: "1.0.0" }, null, 2),
       );
-      await writeFile(
-        path.join(templateDir, ".env.example"),
-        "APP_NAME=test\n",
-      );
+      await writeFile(path.join(templateDir, ".env.example"), "APP_NAME=test\n");
       await writeFile(path.join(templateDir, "_gitignore"), "node_modules\n");
-      await writeFile(
-        path.join(templateDir, "docker", "init-app.sh"),
-        "#!/bin/sh\n",
-      );
-      await writeFile(
-        path.join(templateDir, "docker", "init-localstack.sh"),
-        "#!/bin/sh\n",
-      );
+      await writeFile(path.join(templateDir, "docker", "init-app.sh"), "#!/bin/sh\n");
+      await writeFile(path.join(templateDir, "docker", "init-localstack.sh"), "#!/bin/sh\n");
 
       await withTempDir("glim-create-target", async (targetRoot) => {
         const execCommand = mock(async () => undefined);
@@ -47,21 +38,15 @@ describe("createProjectWithRuntime", () => {
         });
 
         const packageJson = JSON.parse(
-          await readFile(
-            path.join(targetRoot, "acme-app", "package.json"),
-            "utf8",
-          ),
+          await readFile(path.join(targetRoot, "acme-app", "package.json"), "utf8"),
         );
         expect(packageJson.name).toBe("acme-app");
-        expect(
-          await readFile(path.join(targetRoot, "acme-app", ".env"), "utf8"),
-        ).toBe("APP_NAME=test\n");
-        expect(
-          await readFile(
-            path.join(targetRoot, "acme-app", ".gitignore"),
-            "utf8",
-          ),
-        ).toBe("node_modules\n");
+        expect(await readFile(path.join(targetRoot, "acme-app", ".env"), "utf8")).toBe(
+          "APP_NAME=test\n",
+        );
+        expect(await readFile(path.join(targetRoot, "acme-app", ".gitignore"), "utf8")).toBe(
+          "node_modules\n",
+        );
         expect(
           (
             execCommand.mock.calls as unknown as Array<

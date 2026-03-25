@@ -1,9 +1,6 @@
 import "dotenv/config";
 
-import {
-  createServerAppWithRuntime,
-  startWithRuntime,
-} from "@core/_internal/server-runtime";
+import { createServerAppWithRuntime, startWithRuntime } from "@core/_internal/server-runtime";
 import type { GnApp } from "@core/gn-app";
 import type { GnModule } from "@core/gn-module";
 import type { Logger } from "@core/helpers/logger";

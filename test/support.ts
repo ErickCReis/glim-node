@@ -6,10 +6,7 @@ export async function makeTempDir(prefix: string) {
   return mkdtemp(path.join(os.tmpdir(), `${prefix}-`));
 }
 
-export async function withTempDir<T>(
-  prefix: string,
-  run: (dir: string) => Promise<T>,
-) {
+export async function withTempDir<T>(prefix: string, run: (dir: string) => Promise<T>) {
   const dir = await makeTempDir(prefix);
   try {
     return await run(dir);

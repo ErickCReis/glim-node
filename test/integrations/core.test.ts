@@ -65,8 +65,7 @@ describe("core integrations", () => {
             NOTIFICATION_BILLING_S_REGION: "us-east-1",
             NOTIFICATION_BILLING_S_ACCESS_KEY: "key",
             NOTIFICATION_BILLING_S_SECRET_KEY: "secret",
-            NOTIFICATION_BILLING_S_TOPIC_USER_CREATED_ARN:
-              "arn:topic:user-created",
+            NOTIFICATION_BILLING_S_TOPIC_USER_CREATED_ARN: "arn:topic:user-created",
           },
           async () => {
             const module = await createModule("billing", {
@@ -93,9 +92,7 @@ describe("core integrations", () => {
             if (!mountedRouter) {
               throw new Error("Router was not loaded");
             }
-            const response = await mountedRouter.request(
-              "http://localhost/billing/ping",
-            );
+            const response = await mountedRouter.request("http://localhost/billing/ping");
             expect(await response.text()).toBe("pong");
 
             module["~context"] = {
@@ -104,23 +101,11 @@ describe("core integrations", () => {
                 auth: { id: 7 },
               },
             } as never;
-            await module.invalidateCacheMiddleware(
-              new URL("https://api.example.com/tasks*"),
-            );
-            await module.invalidateCacheMiddlewareByUser(
-              new URL("https://api.example.com/tasks*"),
-            );
+            await module.invalidateCacheMiddleware(new URL("https://api.example.com/tasks*"));
+            await module.invalidateCacheMiddlewareByUser(new URL("https://api.example.com/tasks*"));
 
-            expect(cacheDriver.hdel).toHaveBeenNthCalledWith(
-              1,
-              "CACHE_REQUEST:0",
-              "/tasks:hash-a",
-            );
-            expect(cacheDriver.hdel).toHaveBeenNthCalledWith(
-              2,
-              "CACHE_REQUEST:7",
-              "/tasks:hash-a",
-            );
+            expect(cacheDriver.hdel).toHaveBeenNthCalledWith(1, "CACHE_REQUEST:0", "/tasks:hash-a");
+            expect(cacheDriver.hdel).toHaveBeenNthCalledWith(2, "CACHE_REQUEST:7", "/tasks:hash-a");
           },
         );
       });
@@ -169,9 +154,7 @@ describe("core integrations", () => {
             if (!mountedRouter) {
               throw new Error("Router was not loaded");
             }
-            const response = await mountedRouter.request(
-              "http://localhost/health",
-            );
+            const response = await mountedRouter.request("http://localhost/health");
             expect(await response.text()).toBe("ok");
           },
         );

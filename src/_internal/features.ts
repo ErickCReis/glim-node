@@ -11,13 +11,7 @@ import type { Prettify } from "@core/helpers/types";
 type ModuleOrApp = BaseModule | BaseApp;
 
 const features = {
-  "db.postgres": async ({
-    module,
-    alias = "default",
-  }: {
-    module: ModuleOrApp;
-    alias?: string;
-  }) => {
+  "db.postgres": async ({ module, alias = "default" }: { module: ModuleOrApp; alias?: string }) => {
     const postgres = await import("@core/helpers/postgres");
     const dbEnv = postgres.getPostgresEnv(
       "namespace" in module ? module.namespace : undefined,
@@ -26,48 +20,21 @@ const features = {
     return postgres.createPostgresClient({ connectionString: dbEnv.url });
   },
 
-  "db.mysql": async ({
-    module,
-    alias = "default",
-  }: {
-    module: ModuleOrApp;
-    alias?: string;
-  }) => {
+  "db.mysql": async ({ module, alias = "default" }: { module: ModuleOrApp; alias?: string }) => {
     const mysql = await import("@core/helpers/mysql");
-    const dbEnv = mysql.getMysqlEnv(
-      "namespace" in module ? module.namespace : undefined,
-      alias,
-    );
+    const dbEnv = mysql.getMysqlEnv("namespace" in module ? module.namespace : undefined, alias);
     return mysql.createMysqlClient({ uri: dbEnv.url });
   },
 
-  "cache.redis": async ({
-    module,
-    alias = "default",
-  }: {
-    module: ModuleOrApp;
-    alias?: string;
-  }) => {
+  "cache.redis": async ({ module, alias = "default" }: { module: ModuleOrApp; alias?: string }) => {
     const redis = await import("@core/helpers/redis");
-    const redisEnv = redis.getRedisEnv(
-      "namespace" in module ? module.namespace : undefined,
-      alias,
-    );
+    const redisEnv = redis.getRedisEnv("namespace" in module ? module.namespace : undefined, alias);
     return redis.createRedisClient(redisEnv);
   },
 
-  "storage.s3": async ({
-    module,
-    alias = "default",
-  }: {
-    module: ModuleOrApp;
-    alias?: string;
-  }) => {
+  "storage.s3": async ({ module, alias = "default" }: { module: ModuleOrApp; alias?: string }) => {
     const s3 = await import("@core/helpers/s3");
-    const s3Env = s3.getS3Env(
-      "namespace" in module ? module.namespace : undefined,
-      alias,
-    );
+    const s3Env = s3.getS3Env("namespace" in module ? module.namespace : undefined, alias);
     return s3.createS3Client(s3Env);
   },
 
@@ -97,10 +64,7 @@ const features = {
     alias?: string;
   }) => {
     const http = await import("@core/helpers/http");
-    const httpEnv = http.getHttpEnv(
-      "namespace" in module ? module.namespace : undefined,
-      alias,
-    );
+    const httpEnv = http.getHttpEnv("namespace" in module ? module.namespace : undefined, alias);
 
     return http.createHttpClient(httpEnv);
   },
@@ -109,13 +73,9 @@ const features = {
 export type FeaturesType = typeof features;
 export type Feature = keyof FeaturesType;
 export type FeatureType = Feature extends `${infer A}.${string}` ? A : never;
-export type FeatureReturn<F extends Feature> = Awaited<
-  ReturnType<FeaturesType[F]>
->;
+export type FeatureReturn<F extends Feature> = Awaited<ReturnType<FeaturesType[F]>>;
 
-type FeatureParams<F extends Feature, K = FeaturesType[F]> = K extends (
-  arg: infer P,
-) => unknown
+type FeatureParams<F extends Feature, K = FeaturesType[F]> = K extends (arg: infer P) => unknown
   ? keyof P extends "module" | "alias"
     ? { config?: never }
     : { config: Prettify<Omit<P, "module" | "alias">> }

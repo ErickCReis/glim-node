@@ -61,9 +61,7 @@ function _cacheMiddleware<ByUser extends boolean = false>({
 
     const auth = c.var.auth;
     if (byUser && !auth) {
-      throw new Error(
-        "Não é possível usar cacheMiddlewareByUser sem autenticação.",
-      );
+      throw new Error("Não é possível usar cacheMiddlewareByUser sem autenticação.");
     }
 
     const userId = byUser ? auth.id : 0;
@@ -83,9 +81,7 @@ function _cacheMiddleware<ByUser extends boolean = false>({
       return;
     }
 
-    const isJson = c.res.headers
-      .get("content-type")
-      ?.includes("application/json");
+    const isJson = c.res.headers.get("content-type")?.includes("application/json");
     if (!isJson) {
       return;
     }

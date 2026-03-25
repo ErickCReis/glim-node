@@ -1,10 +1,6 @@
 import fs from "node:fs";
 import { join } from "node:path";
-import type {
-  Feature,
-  FeatureImAlive,
-  FeatureType,
-} from "@core/_internal/features";
+import type { Feature, FeatureImAlive, FeatureType } from "@core/_internal/features";
 export type ImAlive = {
   status: "alive" | "dead";
   latency: number;
@@ -74,9 +70,7 @@ export function createImAlive(
       ) {
         const alias = key.toLocaleLowerCase().replaceAll(/db[-_]?/g, "");
         const newKey = alias === "" ? "" : `.${alias}`;
-        const resourceKey = namespace
-          ? `db.${namespace}${newKey}`
-          : `db${newKey}`;
+        const resourceKey = namespace ? `db.${namespace}${newKey}` : `db${newKey}`;
         checksPromises.push(
           check(
             resourceKey,
@@ -91,41 +85,23 @@ export function createImAlive(
         );
       }
 
-      if (
-        (resource === "all" || resource === "cache") &&
-        value.type === "cache.redis"
-      ) {
+      if ((resource === "all" || resource === "cache") && value.type === "cache.redis") {
         const alias = key.toLocaleLowerCase().replaceAll(/cache[-_]?/g, "");
         const newKey = alias === "" ? "" : `.${alias}`;
-        const resourceKey = namespace
-          ? `cache.${namespace}${newKey}`
-          : `cache${newKey}`;
+        const resourceKey = namespace ? `cache.${namespace}${newKey}` : `cache${newKey}`;
 
         checksPromises.push(
-          check(
-            resourceKey,
-            () => value.driver.ping().then((r) => r === "PONG"),
-            resolvedRuntime,
-          ),
+          check(resourceKey, () => value.driver.ping().then((r) => r === "PONG"), resolvedRuntime),
         );
       }
 
-      if (
-        (resource === "all" || resource === "storage") &&
-        value.type === "storage.s3"
-      ) {
+      if ((resource === "all" || resource === "storage") && value.type === "storage.s3") {
         const alias = key.toLocaleLowerCase().replaceAll(/storage[-_]?/g, "");
         const newKey = alias === "" ? "" : `.${alias}`;
-        const resourceKey = namespace
-          ? `storage.${namespace}${newKey}`
-          : `storage${newKey}`;
+        const resourceKey = namespace ? `storage.${namespace}${newKey}` : `storage${newKey}`;
 
         checksPromises.push(
-          check(
-            resourceKey,
-            () => value.driver.listBuckets().then(() => true),
-            resolvedRuntime,
-          ),
+          check(resourceKey, () => value.driver.listBuckets().then(() => true), resolvedRuntime),
         );
       }
 
@@ -133,9 +109,7 @@ export function createImAlive(
         (resource === "all" || resource === "notification") &&
         value.type === "notification.sns"
       ) {
-        const alias = key
-          .toLocaleLowerCase()
-          .replaceAll(/notification[-_]?/g, "");
+        const alias = key.toLocaleLowerCase().replaceAll(/notification[-_]?/g, "");
         const newKey = alias === "" ? "" : `.${alias}`;
         const resourceKey = namespace
           ? `notification.${namespace}${newKey}`
@@ -144,24 +118,16 @@ export function createImAlive(
         checksPromises.push(
           check(
             resourceKey,
-            () =>
-              value.driver
-                .listTopics()
-                .then((r) => (r.Topics?.length ?? 0) > 0),
+            () => value.driver.listTopics().then((r) => (r.Topics?.length ?? 0) > 0),
             resolvedRuntime,
           ),
         );
       }
 
-      if (
-        (resource === "all" || resource === "http") &&
-        value.type === "http.webservice"
-      ) {
+      if ((resource === "all" || resource === "http") && value.type === "http.webservice") {
         const alias = key.toLocaleLowerCase().replaceAll(/http[-_]?/g, "");
         const newKey = alias === "" ? "" : `.${alias}`;
-        const resourceKey = namespace
-          ? `http.${namespace}${newKey}`
-          : `http${newKey}`;
+        const resourceKey = namespace ? `http.${namespace}${newKey}` : `http${newKey}`;
 
         checksPromises.push(
           check(

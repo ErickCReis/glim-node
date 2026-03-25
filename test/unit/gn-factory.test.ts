@@ -1,9 +1,6 @@
 import { describe, expect, it, mock } from "bun:test";
 import { Hono } from "hono";
-import {
-  createAppWithRuntime,
-  createModuleWithRuntime,
-} from "../../src/_internal/gn-factory";
+import { createAppWithRuntime, createModuleWithRuntime } from "../../src/_internal/gn-factory";
 import { createCacheDriver, createLoggerMock } from "../fixtures";
 
 describe("gn factory", () => {
@@ -123,12 +120,8 @@ describe("gn factory", () => {
       },
     } as never;
 
-    await module.invalidateCacheMiddleware(
-      new URL("https://api.example.com/tasks*"),
-    );
-    await module.invalidateCacheMiddlewareByUser(
-      new URL("https://api.example.com/tasks*"),
-    );
+    await module.invalidateCacheMiddleware(new URL("https://api.example.com/tasks*"));
+    await module.invalidateCacheMiddlewareByUser(new URL("https://api.example.com/tasks*"));
 
     expect(store.get("CACHE_REQUEST:0")?.has("/tasks:hash-a")).toBe(false);
     expect(store.get("CACHE_REQUEST:0")?.has("/users:hash-b")).toBe(true);

@@ -23,51 +23,39 @@ const routerV1 = new Hono()
     const tasks = await getTasksUseCase();
     return c.json(tasks);
   })
-  .post(
-    "/tasks",
-    sValidator("json", z.object({ nome: z.string() })),
-    async (c) => {
-      const { nome } = c.req.valid("json");
-      const task = await createTaskUseCase({ nome });
-      if (!task) {
-        throw new HTTPException(400);
-      }
+  .post("/tasks", sValidator("json", z.object({ nome: z.string() })), async (c) => {
+    const { nome } = c.req.valid("json");
+    const task = await createTaskUseCase({ nome });
+    if (!task) {
+      throw new HTTPException(400);
+    }
 
-      mstask.invalidateCacheMiddleware(client.private.tasks.$url());
-      mstask.invalidateCacheMiddlewareByUser(
-        client.v1.tasks.$url(),
-        client.v1.tasks[":id"].$url({ param: { id: "*" } }),
-      );
+    mstask.invalidateCacheMiddleware(client.private.tasks.$url());
+    mstask.invalidateCacheMiddlewareByUser(
+      client.v1.tasks.$url(),
+      client.v1.tasks[":id"].$url({ param: { id: "*" } }),
+    );
 
-      mstask.notification.publish("criacao-task", JSON.stringify(task));
+    mstask.notification.publish("criacao-task", JSON.stringify(task));
 
-      return c.json(task, 201);
-    },
-  )
-  .get(
-    "/tasks/:id",
-    sValidator("param", z.object({ id: z.coerce.number() })),
-    async (c) => {
-      const { id } = c.req.valid("param");
-      const task = await getTaskUseCase(id);
-      if (!task) {
-        throw new HTTPException(404);
-      }
+    return c.json(task, 201);
+  })
+  .get("/tasks/:id", sValidator("param", z.object({ id: z.coerce.number() })), async (c) => {
+    const { id } = c.req.valid("param");
+    const task = await getTaskUseCase(id);
+    if (!task) {
+      throw new HTTPException(404);
+    }
 
-      mstask.httpMsStatistic.post({ path: "/task", body: { id: task.id } });
+    mstask.httpMsStatistic.post({ path: "/task", body: { id: task.id } });
 
-      return c.json(task);
-    },
-  )
-  .delete(
-    "/tasks/:id",
-    sValidator("param", z.object({ id: z.coerce.number() })),
-    async (c) => {
-      const { id } = c.req.valid("param");
-      await deleteTaskUseCase(id);
-      return c.body(null, 204);
-    },
-  );
+    return c.json(task);
+  })
+  .delete("/tasks/:id", sValidator("param", z.object({ id: z.coerce.number() })), async (c) => {
+    const { id } = c.req.valid("param");
+    await deleteTaskUseCase(id);
+    return c.body(null, 204);
+  });
 
 const routerPrivate = new Hono()
   .basePath("/private")

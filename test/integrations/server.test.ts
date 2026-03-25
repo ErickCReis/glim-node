@@ -38,9 +38,7 @@ describe("server integrations", () => {
         APP_CORS_ORIGIN: "*",
       },
       async () => {
-        const consoleSpy = spyOn(console, "log").mockImplementation(
-          () => undefined,
-        );
+        const consoleSpy = spyOn(console, "log").mockImplementation(() => undefined);
 
         await start({
           logger: {
@@ -55,9 +53,7 @@ describe("server integrations", () => {
         } as never);
 
         expect(serve).toHaveBeenCalledTimes(1);
-        expect(consoleSpy).toHaveBeenCalledWith(
-          "Server is running on port 3000",
-        );
+        expect(consoleSpy).toHaveBeenCalledWith("Server is running on port 3000");
       },
     );
   });
@@ -93,20 +89,12 @@ describe("server integrations", () => {
           mainLogger: mainLogger as never,
         });
 
-        const root = await app.request(
-          "http://localhost/",
-          {},
-          createNodeServerEnv(),
-        );
+        const root = await app.request("http://localhost/", {}, createNodeServerEnv());
         expect(await root.text()).toBe("Hello world!");
         expect(root.headers.get("cache-control")).toContain("no-store");
         expect(root.headers.get("pragma")).toBe("no-cache");
 
-        const ping = await app.request(
-          "http://localhost/billing/ping",
-          {},
-          createNodeServerEnv(),
-        );
+        const ping = await app.request("http://localhost/billing/ping", {}, createNodeServerEnv());
         expect(await ping.text()).toBe("pong");
         expect(module["~context"]).not.toBeNull();
 
@@ -132,9 +120,7 @@ describe("server integrations", () => {
     const exitSpy = spyOn(process, "exit").mockImplementation(() => {
       throw exitError;
     });
-    const errorSpy = spyOn(console, "error").mockImplementation(
-      () => undefined,
-    );
+    const errorSpy = spyOn(console, "error").mockImplementation(() => undefined);
 
     await withEnv(
       {

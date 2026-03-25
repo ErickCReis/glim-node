@@ -13,9 +13,7 @@ import type { Context } from "hono";
 import { Hono } from "hono";
 import { hc } from "hono/client";
 
-type DropFirst<T extends unknown[]> = T extends [unknown, ...infer U]
-  ? U
-  : never;
+type DropFirst<T extends unknown[]> = T extends [unknown, ...infer U] ? U : never;
 
 type GnFactoryRuntime = {
   createFeature?: typeof createFeature;
@@ -30,9 +28,7 @@ type GnBase = {
 
   "~context": Context | null;
   "~router": Hono | null;
-  loadRouter: (
-    router: Hono,
-  ) => (...args: Parameters<typeof hc>) => ReturnType<typeof hc>;
+  loadRouter: (router: Hono) => (...args: Parameters<typeof hc>) => ReturnType<typeof hc>;
 
   invalidateCacheMiddleware: (
     ...patterns: DropFirst<Parameters<(typeof cacheRequest)["invalidate"]>>
@@ -60,10 +56,7 @@ function resolveRuntime(runtime: GnFactoryRuntime = {}) {
   };
 }
 
-function createBase(
-  namespace: string | undefined,
-  runtime: ReturnType<typeof resolveRuntime>,
-) {
+function createBase(namespace: string | undefined, runtime: ReturnType<typeof resolveRuntime>) {
   const base: GnBase & { namespace?: string } = {
     env: coreEnv,
     logger: runtime.createLogger(namespace),
@@ -104,9 +97,7 @@ function createBase(
   return base;
 }
 
-async function resolveFeatures<
-  const TConfig extends Record<string, FeatureConfig>,
->(
+async function resolveFeatures<const TConfig extends Record<string, FeatureConfig>>(
   config: TConfig,
   base: GnBase & { namespace?: string },
   runtime: ReturnType<typeof resolveRuntime>,
@@ -136,16 +127,13 @@ async function resolveFeatures<
   return { features, imAliveFeatures };
 }
 
-export async function createAppWithRuntime<
-  const TConfig extends Record<string, FeatureConfig>,
->(config: TConfig, runtime: GnFactoryRuntime = {}) {
+export async function createAppWithRuntime<const TConfig extends Record<string, FeatureConfig>>(
+  config: TConfig,
+  runtime: GnFactoryRuntime = {},
+) {
   const resolvedRuntime = resolveRuntime(runtime);
   const base = createBase(undefined, resolvedRuntime);
-  const { features, imAliveFeatures } = await resolveFeatures(
-    config,
-    base,
-    resolvedRuntime,
-  );
+  const { features, imAliveFeatures } = await resolveFeatures(config, base, resolvedRuntime);
 
   return Object.assign(base, {
     imAlive: resolvedRuntime.createImAlive("app", imAliveFeatures),
@@ -159,11 +147,7 @@ export async function createModuleWithRuntime<
 >(namespace: TNamespace, config: TConfig, runtime: GnFactoryRuntime = {}) {
   const resolvedRuntime = resolveRuntime(runtime);
   const base = createBase(namespace, resolvedRuntime);
-  const { features, imAliveFeatures } = await resolveFeatures(
-    config,
-    base,
-    resolvedRuntime,
-  );
+  const { features, imAliveFeatures } = await resolveFeatures(config, base, resolvedRuntime);
 
   return Object.assign(base, {
     namespace,

@@ -1,16 +1,10 @@
-import {
-  ListTopicsCommand,
-  PublishCommand,
-  SNSClient,
-} from "@aws-sdk/client-sns";
+import { ListTopicsCommand, PublishCommand, SNSClient } from "@aws-sdk/client-sns";
 import { formatEnvKey } from "@core/helpers/utils";
 import { z } from "zod";
 
 export type SNS = ReturnType<typeof createSNSClient>;
 
-export function createSNSClient<
-  const Topics extends ReadonlyArray<string> | undefined,
->(config: {
+export function createSNSClient<const Topics extends ReadonlyArray<string> | undefined>(config: {
   region: string;
   endpoint?: string;
   accessKeyId: string;
@@ -63,8 +57,7 @@ export function getSNSEnv(
 
       ...topicNames.reduce(
         (acc, topic) => {
-          acc[`${key}_TOPIC_${topic.replaceAll("-", "_").toUpperCase()}_ARN`] =
-            z.string();
+          acc[`${key}_TOPIC_${topic.replaceAll("-", "_").toUpperCase()}_ARN`] = z.string();
           return acc;
         },
         {} as Record<string, z.ZodTypeAny>,
@@ -78,9 +71,7 @@ export function getSNSEnv(
   const secretAccessKey = snsEnv[`${key}_SECRET_KEY`] as string;
   const topics = topicNames.reduce(
     (acc, topic) => {
-      acc[topic] = snsEnv[
-        `${key}_TOPIC_${topic.replaceAll("-", "_").toUpperCase()}_ARN`
-      ] as string;
+      acc[topic] = snsEnv[`${key}_TOPIC_${topic.replaceAll("-", "_").toUpperCase()}_ARN`] as string;
       return acc;
     },
     {} as Record<string, string>,

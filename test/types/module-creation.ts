@@ -27,32 +27,20 @@ const billingModule = await createModule("billing", {
 });
 
 type BillingModule = Awaited<typeof billingModule>;
-type NotificationTopic = Parameters<
-  BillingModule["notifications"]["publish"]
->[0];
+type NotificationTopic = Parameters<BillingModule["notifications"]["publish"]>[0];
 
 expectTypeOf<BillingModule["namespace"]>().toEqualTypeOf<"billing">();
-expectTypeOf<BillingModule["db"]>().toEqualTypeOf<
-  ReturnType<typeof createPostgresClient>
->();
+expectTypeOf<BillingModule["db"]>().toEqualTypeOf<ReturnType<typeof createPostgresClient>>();
 expectTypeOf<BillingModule["cache"]>().toEqualTypeOf<Redis>();
 expectTypeOf<BillingModule["storage"]>().toEqualTypeOf<S3>();
-expectTypeOf<BillingModule["reportingApi"]>().toEqualTypeOf<
-  ReturnType<typeof createHttpClient>
->();
-expectTypeOf<NotificationTopic>().toEqualTypeOf<
-  "user-created" | "task-updated"
->();
+expectTypeOf<BillingModule["reportingApi"]>().toEqualTypeOf<ReturnType<typeof createHttpClient>>();
+expectTypeOf<NotificationTopic>().toEqualTypeOf<"user-created" | "task-updated">();
 
 expectTypeOf(billingModule.namespace).toEqualTypeOf<"billing">();
-expectTypeOf(billingModule.db).toEqualTypeOf<
-  ReturnType<typeof createPostgresClient>
->();
+expectTypeOf(billingModule.db).toEqualTypeOf<ReturnType<typeof createPostgresClient>>();
 expectTypeOf(billingModule.cache).toEqualTypeOf<Redis>();
 expectTypeOf(billingModule.storage).toEqualTypeOf<S3>();
-expectTypeOf(billingModule.reportingApi).toEqualTypeOf<
-  ReturnType<typeof createHttpClient>
->();
+expectTypeOf(billingModule.reportingApi).toEqualTypeOf<ReturnType<typeof createHttpClient>>();
 
 await billingModule.notifications.publish("user-created", "ok");
 await billingModule.notifications.publish("task-updated", "ok");

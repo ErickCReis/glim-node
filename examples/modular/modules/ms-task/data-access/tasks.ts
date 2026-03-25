@@ -17,10 +17,7 @@ export async function getTask(id: number) {
 }
 
 export async function createTask({ nome }: { nome: string }) {
-  const [task] = await mstask.db
-    .insert(models.tasks)
-    .values({ nome })
-    .returning();
+  const [task] = await mstask.db.insert(models.tasks).values({ nome }).returning();
   return task;
 }
 

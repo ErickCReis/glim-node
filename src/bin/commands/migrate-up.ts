@@ -1,11 +1,7 @@
 import "dotenv/config";
 
 import { log } from "@clack/prompts";
-import {
-  createTempDrizzleConfig,
-  execCommand,
-  isAppStructure,
-} from "@core/bin/utils";
+import { createTempDrizzleConfig, execCommand, isAppStructure } from "@core/bin/utils";
 import { getPostgresEnv } from "@core/helpers/postgres";
 
 type RunMigrationsRuntime = {
@@ -18,8 +14,7 @@ type RunMigrationsRuntime = {
 
 function resolveRuntime(runtime: RunMigrationsRuntime = {}) {
   return {
-    createTempDrizzleConfig:
-      runtime.createTempDrizzleConfig ?? createTempDrizzleConfig,
+    createTempDrizzleConfig: runtime.createTempDrizzleConfig ?? createTempDrizzleConfig,
     execCommand: runtime.execCommand ?? execCommand,
     getPostgresEnv: runtime.getPostgresEnv ?? getPostgresEnv,
     isAppStructure: runtime.isAppStructure ?? isAppStructure,
@@ -42,9 +37,7 @@ export async function runMigrationsWithRuntime(
   const dbEnv = isApp
     ? resolvedRuntime.getPostgresEnv()
     : resolvedRuntime.getPostgresEnv(moduleInput);
-  const outPath = isApp
-    ? "./src/db/migrations"
-    : `./modules/${moduleInput}/db/migrations`;
+  const outPath = isApp ? "./src/db/migrations" : `./modules/${moduleInput}/db/migrations`;
 
   const drizzleConfigPath = await resolvedRuntime.createTempDrizzleConfig({
     dialect: "postgresql",

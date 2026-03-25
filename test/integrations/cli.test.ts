@@ -5,12 +5,7 @@ import path from "node:path";
 import { createProject } from "../../src/bin/commands/create";
 import { generateMigration } from "../../src/bin/commands/migrate-gen";
 import { runMigrations } from "../../src/bin/commands/migrate-up";
-import {
-  withCwd,
-  withEnv,
-  withSuppressedOutput,
-  withTempDir,
-} from "../support";
+import { withCwd, withEnv, withSuppressedOutput, withTempDir } from "../support";
 
 async function writeExecutable(filePath: string, source: string) {
   await writeFile(filePath, source);
@@ -29,19 +24,10 @@ describe("cli integrations", () => {
         path.join(templateDir, "package.json"),
         JSON.stringify({ name: "template-name", version: "1.0.0" }, null, 2),
       );
-      await writeFile(
-        path.join(templateDir, ".env.example"),
-        "APP_NAME=test\n",
-      );
+      await writeFile(path.join(templateDir, ".env.example"), "APP_NAME=test\n");
       await writeFile(path.join(templateDir, "_gitignore"), "node_modules\n");
-      await writeFile(
-        path.join(templateDir, "docker", "init-app.sh"),
-        "#!/bin/sh\n",
-      );
-      await writeFile(
-        path.join(templateDir, "docker", "init-localstack.sh"),
-        "#!/bin/sh\n",
-      );
+      await writeFile(path.join(templateDir, "docker", "init-app.sh"), "#!/bin/sh\n");
+      await writeFile(path.join(templateDir, "docker", "init-localstack.sh"), "#!/bin/sh\n");
       const commandsLog = path.join(templateRoot, "commands.log");
       await writeFile(commandsLog, "");
       await writeExecutable(
@@ -79,24 +65,16 @@ exit 0
           );
 
           const packageJson = JSON.parse(
-            await readFile(
-              path.join(targetRoot, "acme-app", "package.json"),
-              "utf8",
-            ),
+            await readFile(path.join(targetRoot, "acme-app", "package.json"), "utf8"),
           );
           expect(packageJson.name).toBe("acme-app");
-          expect(
-            await readFile(path.join(targetRoot, "acme-app", ".env"), "utf8"),
-          ).toBe("APP_NAME=test\n");
-          expect(
-            await readFile(
-              path.join(targetRoot, "acme-app", ".gitignore"),
-              "utf8",
-            ),
-          ).toBe("node_modules\n");
-          const commands = (await readFile(commandsLog, "utf8"))
-            .trim()
-            .split("\n");
+          expect(await readFile(path.join(targetRoot, "acme-app", ".env"), "utf8")).toBe(
+            "APP_NAME=test\n",
+          );
+          expect(await readFile(path.join(targetRoot, "acme-app", ".gitignore"), "utf8")).toBe(
+            "node_modules\n",
+          );
+          const commands = (await readFile(commandsLog, "utf8")).trim().split("\n");
           expect(commands).toEqual([
             "chmod:+x init-app.sh",
             "chmod:+x init-localstack.sh",
@@ -156,24 +134,13 @@ exit 0
       expect(generateConfigPath).toBeTruthy();
       expect(migrateConfigPath).toBeTruthy();
 
-      const generateConfig = await readFile(
-        generateConfigPath as string,
-        "utf8",
-      );
+      const generateConfig = await readFile(generateConfigPath as string, "utf8");
       const migrateConfig = await readFile(migrateConfigPath as string, "utf8");
 
-      expect(generateConfig).toContain(
-        '"schema":"./modules/billing/db/models/"',
-      );
-      expect(generateConfig).toContain(
-        '"out":"./modules/billing/db/migrations"',
-      );
-      expect(migrateConfig).toContain(
-        '"url":"postgresql://user:pw@db.local/billing"',
-      );
-      expect(migrateConfig).toContain(
-        '"out":"./modules/billing/db/migrations"',
-      );
+      expect(generateConfig).toContain('"schema":"./modules/billing/db/models/"');
+      expect(generateConfig).toContain('"out":"./modules/billing/db/migrations"');
+      expect(migrateConfig).toContain('"url":"postgresql://user:pw@db.local/billing"');
+      expect(migrateConfig).toContain('"out":"./modules/billing/db/migrations"');
     });
   });
 });
@@ -196,9 +163,7 @@ describe("cli entrypoint", () => {
         try {
           expect(code).toBe(1);
           expect(stdout).toContain("Glim Node");
-          expect(stdout).toContain(
-            'Erro ao executar o comando "wat": Comando desconhecido: "wat"',
-          );
+          expect(stdout).toContain('Erro ao executar o comando "wat": Comando desconhecido: "wat"');
           resolve();
         } catch (error) {
           reject(error);

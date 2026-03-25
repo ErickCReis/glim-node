@@ -1,8 +1,4 @@
-import {
-  GetObjectCommand,
-  ListBucketsCommand,
-  S3Client,
-} from "@aws-sdk/client-s3";
+import { GetObjectCommand, ListBucketsCommand, S3Client } from "@aws-sdk/client-s3";
 import { formatEnvKey } from "@core/helpers/utils";
 import { z } from "zod";
 

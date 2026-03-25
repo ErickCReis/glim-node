@@ -5,9 +5,7 @@ import pino from "pino";
 export type Logger = pino.Logger;
 
 export function createLogger(namespace?: string): Logger {
-  const appName = namespace
-    ? `${coreEnv.APP_NAME}/${namespace}`
-    : coreEnv.APP_NAME;
+  const appName = namespace ? `${coreEnv.APP_NAME}/${namespace}` : coreEnv.APP_NAME;
   const logFile = namespace ? `./logs/${namespace}.log` : "./logs/app.log";
 
   return pino({

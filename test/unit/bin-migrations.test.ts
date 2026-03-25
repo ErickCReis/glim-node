@@ -4,9 +4,7 @@ import { runMigrationsWithRuntime } from "../../src/bin/commands/migrate-up";
 
 describe("migration commands", () => {
   it("generates migrations using module paths when the project is modular", async () => {
-    const createTempDrizzleConfig = mock(
-      async () => "/tmp/drizzle.generate.ts",
-    );
+    const createTempDrizzleConfig = mock(async () => "/tmp/drizzle.generate.ts");
     const execCommand = mock(async () => undefined);
 
     await generateMigrationWithRuntime("billing", {

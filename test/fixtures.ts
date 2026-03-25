@@ -22,9 +22,7 @@ export function createLoggerMock() {
   return logger;
 }
 
-export function createCacheDriver(
-  seed: Record<string, Record<string, string>> = {},
-) {
+export function createCacheDriver(seed: Record<string, Record<string, string>> = {}) {
   const store = new Map<string, Map<string, string>>();
 
   for (const [key, value] of Object.entries(seed)) {

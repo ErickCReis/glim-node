@@ -7,11 +7,7 @@ export async function getTasks() {
 }
 
 export async function getTask(id: number) {
-  const [task] = await app.db
-    .select()
-    .from(models.tasks)
-    .where(eq(models.tasks.id, id))
-    .limit(1);
+  const [task] = await app.db.select().from(models.tasks).where(eq(models.tasks.id, id)).limit(1);
 
   return task;
 }

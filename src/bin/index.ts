@@ -27,9 +27,7 @@ async function getSelectedModule(moduleArg?: string, folderPath = "") {
     });
 
   if (modules.length === 0) {
-    throw new Error(
-      `Nenhum módulo encontrado com a pasta '${folderPath}' válida`,
-    );
+    throw new Error(`Nenhum módulo encontrado com a pasta '${folderPath}' válida`);
   }
 
   if (modules.length === 1) {
@@ -38,9 +36,7 @@ async function getSelectedModule(moduleArg?: string, folderPath = "") {
   }
 
   if (moduleArg && !modules.includes(moduleArg)) {
-    log.warn(
-      `Módulo "${moduleArg}" não encontrado ou não possui pasta '${folderPath}'`,
-    );
+    log.warn(`Módulo "${moduleArg}" não encontrado ou não possui pasta '${folderPath}'`);
   }
 
   if (!moduleArg || !modules.includes(moduleArg)) {
@@ -109,9 +105,7 @@ async function validateAndGetProjectName(initialName?: string) {
   let projectName = initialName;
 
   if (projectName && !/^[a-z0-9-]+$/.test(projectName)) {
-    log.warn(
-      "O nome do projeto deve conter apenas letras minúsculas, números e hífens",
-    );
+    log.warn("O nome do projeto deve conter apenas letras minúsculas, números e hífens");
     projectName = undefined;
   }
 

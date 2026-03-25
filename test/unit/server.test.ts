@@ -21,9 +21,7 @@ describe("server runtime", () => {
         APP_CORS_ORIGIN: "*",
       },
       async () => {
-        const { createServerAppWithRuntime } = await import(
-          "../../src/_internal/server-runtime"
-        );
+        const { createServerAppWithRuntime } = await import("../../src/_internal/server-runtime");
         const createCacheDriverMiddleware = mock(async () =>
           createMiddleware(async (_c, next) => {
             await next();
@@ -69,9 +67,7 @@ describe("server runtime", () => {
         APP_CORS_ORIGIN: "*",
       },
       async () => {
-        const { createServerAppWithRuntime } = await import(
-          "../../src/_internal/server-runtime"
-        );
+        const { createServerAppWithRuntime } = await import("../../src/_internal/server-runtime");
         const exitError = new Error("exit");
         const exit = mock(() => {
           throw exitError;
@@ -120,9 +116,7 @@ describe("server runtime", () => {
         APP_CORS_ORIGIN: "*",
       },
       async () => {
-        const { startWithRuntime } = await import(
-          "../../src/_internal/server-runtime"
-        );
+        const { startWithRuntime } = await import("../../src/_internal/server-runtime");
         const serve = mock(
           (
             options: { fetch: typeof globalThis.fetch; port: number },
@@ -157,9 +151,7 @@ describe("server runtime", () => {
 
         expect(serve).toHaveBeenCalledTimes(1);
         expect(showRoutes).toHaveBeenCalledTimes(1);
-        expect(consoleLog).toHaveBeenCalledWith(
-          "Server is running on port 3000",
-        );
+        expect(consoleLog).toHaveBeenCalledWith("Server is running on port 3000");
       },
     );
   });

@@ -1,9 +1,4 @@
-import {
-  createTask,
-  deleteTask,
-  getTask,
-  getTasks,
-} from "@ms-task/data-access/tasks";
+import { createTask, deleteTask, getTask, getTasks } from "@ms-task/data-access/tasks";
 
 export async function getTasksUseCase() {
   return await getTasks();

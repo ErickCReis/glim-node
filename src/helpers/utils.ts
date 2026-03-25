@@ -7,11 +7,7 @@
  * @param alias - Optional alias, defaults to 'default'
  * @returns Formatted environment variable key
  */
-export function formatEnvKey(
-  prefix: string,
-  namespace?: string,
-  alias = "default",
-): string {
+export function formatEnvKey(prefix: string, namespace?: string, alias = "default"): string {
   // Remove prefix from alias if present and convert to lowercase
   const normalizedAlias = alias.toLowerCase();
   const prefixPattern = new RegExp(`${prefix.toLowerCase()}[-_]?`, "i");

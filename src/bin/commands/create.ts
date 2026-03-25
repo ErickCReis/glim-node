@@ -23,15 +23,10 @@ type CreateProjectRuntime = {
 };
 
 function getDefaultTemplatesDir() {
-  return (
-    process.env.GLIM_TEMPLATES_DIR ??
-    path.join(import.meta.dirname, "templates")
-  );
+  return process.env.GLIM_TEMPLATES_DIR ?? path.join(import.meta.dirname, "templates");
 }
 
-function resolveRuntime(
-  runtime: Partial<CreateProjectRuntime> = {},
-): CreateProjectRuntime {
+function resolveRuntime(runtime: Partial<CreateProjectRuntime> = {}): CreateProjectRuntime {
   return {
     cancel: runtime.cancel ?? cancel,
     cwd: runtime.cwd ?? (() => process.cwd()),
@@ -51,15 +46,10 @@ async function getAvailableTemplates(runtime: CreateProjectRuntime) {
   const entries = await runtime.fs.readdir(runtime.getTemplatesDir(), {
     withFileTypes: true,
   });
-  return entries
-    .filter((entry) => entry.isDirectory())
-    .map((entry) => entry.name);
+  return entries.filter((entry) => entry.isDirectory()).map((entry) => entry.name);
 }
 
-async function selectTemplate(
-  runtime: CreateProjectRuntime,
-  templates: string[],
-) {
+async function selectTemplate(runtime: CreateProjectRuntime, templates: string[]) {
   if (templates.length === 1) {
     runtime.log.info(`Utilizando o único template disponível: ${templates[0]}`);
     return templates[0] as string;
@@ -101,10 +91,7 @@ export async function createProjectWithRuntime(
     resolvedRuntime.getTemplatesDir(),
     selectedTemplate,
   );
-  const targetPath = resolvedRuntime.path.join(
-    resolvedRuntime.cwd(),
-    projectName,
-  );
+  const targetPath = resolvedRuntime.path.join(resolvedRuntime.cwd(), projectName);
 
   try {
     await resolvedRuntime.fs.access(targetPath);
@@ -128,18 +115,12 @@ export async function createProjectWithRuntime(
             "bun.lockb",
           ]);
 
-          const packageJsonPath = resolvedRuntime.path.join(
-            targetPath,
-            "package.json",
-          );
+          const packageJsonPath = resolvedRuntime.path.join(targetPath, "package.json");
           const packageJson = JSON.parse(
             await resolvedRuntime.fs.readFile(packageJsonPath, "utf-8"),
           );
           packageJson.name = projectName;
-          await resolvedRuntime.fs.writeFile(
-            packageJsonPath,
-            JSON.stringify(packageJson, null, 2),
-          );
+          await resolvedRuntime.fs.writeFile(packageJsonPath, JSON.stringify(packageJson, null, 2));
 
           await resolvedRuntime.fs.copyFile(
             resolvedRuntime.path.join(targetPath, ".env.example"),
@@ -189,14 +170,10 @@ export async function createProjectWithRuntime(
             cwd: targetPath,
             stdio: "ignore",
           });
-          await resolvedRuntime.execCommand(
-            "git",
-            ["commit", "-m", "initial commit"],
-            {
-              cwd: targetPath,
-              stdio: "ignore",
-            },
-          );
+          await resolvedRuntime.execCommand("git", ["commit", "-m", "initial commit"], {
+            cwd: targetPath,
+            stdio: "ignore",
+          });
 
           return "Git iniciado com sucesso!";
         },
@@ -229,10 +206,7 @@ async function copyDirectory(
     }
 
     if (entry.name === "_gitignore") {
-      await runtime.fs.copyFile(
-        sourcePath,
-        runtime.path.join(target, ".gitignore"),
-      );
+      await runtime.fs.copyFile(sourcePath, runtime.path.join(target, ".gitignore"));
       continue;
     }
 

@@ -14,11 +14,7 @@ type BaseOptions = {
   globalHeaders?: () => Record<string, string>;
 };
 
-export function createHttpClient({
-  baseUrl,
-  timeout,
-  globalHeaders,
-}: BaseOptions) {
+export function createHttpClient({ baseUrl, timeout, globalHeaders }: BaseOptions) {
   async function _request(method: Method, options: Options) {
     return fetch(`${baseUrl}${options.path}`, {
       method,

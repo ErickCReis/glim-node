@@ -1,7 +1,4 @@
-import type {
-  FeatureConfig,
-  FeatureConfigReturn,
-} from "@core/_internal/features";
+import type { FeatureConfig, FeatureConfigReturn } from "@core/_internal/features";
 import { createModuleWithRuntime } from "@core/_internal/gn-factory";
 import type { ImAliveFn } from "@core/_internal/im-alive";
 import type { cacheRequest } from "@core/helpers/cache-request";
@@ -10,9 +7,7 @@ import type { Logger } from "@core/helpers/logger";
 import type { Context, Hono } from "hono";
 import type { hc } from "hono/client";
 
-type DropFirst<T extends unknown[]> = T extends [unknown, ...infer U]
-  ? U
-  : never;
+type DropFirst<T extends unknown[]> = T extends [unknown, ...infer U] ? U : never;
 
 export type BaseModule<TNamespace extends string = string> = {
   namespace: TNamespace;
@@ -22,10 +17,7 @@ export type BaseModule<TNamespace extends string = string> = {
 
   "~context": Context | null;
   "~router": Hono | null;
-  loadRouter: <
-    TRouter extends Hono,
-    Thc extends typeof hc<TRouter> = typeof hc<TRouter>,
-  >(
+  loadRouter: <TRouter extends Hono, Thc extends typeof hc<TRouter> = typeof hc<TRouter>>(
     router: TRouter,
   ) => (...args: Parameters<Thc>) => ReturnType<Thc>;
 
@@ -55,10 +47,7 @@ type ModuleResult<T extends ModuleConfig> = {
 export async function createModule<
   const Namespace extends string,
   const Config extends ModuleConfig,
->(
-  namespace: Namespace,
-  config: Config,
-): Promise<BaseModule<Namespace> & ModuleResult<Config>> {
+>(namespace: Namespace, config: Config): Promise<BaseModule<Namespace> & ModuleResult<Config>> {
   return createModuleWithRuntime(namespace, config) as Promise<
     BaseModule<Namespace> & ModuleResult<Config>
   >;

@@ -1,9 +1,12 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import type { BunupPlugin, DefineConfigItem } from "bunup";
+
 import pkg from "./package.json";
 
 const rootDir = import.meta.dirname;
+const oxlintConfigPath = path.join(rootDir, "oxlint.config.ts");
+const oxfmtConfigPath = path.join(rootDir, "oxfmt.config.ts");
 
 const markCliExecutable = {
   name: "mark-cli-executable",
@@ -20,11 +23,7 @@ const copyTemplates = {
   hooks: {
     onBuildDone: async ({ options }) => {
       const templatesSourceDir = path.join(rootDir, "examples");
-      const templatesTargetDir = path.join(
-        rootDir,
-        options.outDir,
-        "templates",
-      );
+      const templatesTargetDir = path.join(rootDir, options.outDir, "templates");
       await copyDirectory(templatesSourceDir, templatesTargetDir, [
         ".DS_Store",
         "node_modules",
@@ -36,11 +35,7 @@ const copyTemplates = {
   },
 } satisfies BunupPlugin;
 
-async function copyDirectory(
-  source: string,
-  target: string,
-  exclude: string[] = [],
-) {
+async function copyDirectory(source: string, target: string, exclude: string[] = []) {
   await fs.mkdir(target, { recursive: true });
   const entries = await fs.readdir(source, { withFileTypes: true });
 
@@ -61,6 +56,11 @@ async function copyDirectory(
       const data = JSON.parse(await fs.readFile(sourcePath, "utf-8"));
       data.dependencies["glim-node"] = `^${pkg.version}`;
       await fs.writeFile(targetPath, `${JSON.stringify(data, null, 2)}\n`);
+
+      // Copy oxlint.config.ts and oxfmt.config.ts
+      const parentDir = path.dirname(targetPath);
+      await fs.copyFile(oxlintConfigPath, path.join(parentDir, "oxlint.config.ts"));
+      await fs.copyFile(oxfmtConfigPath, path.join(parentDir, "oxfmt.config.ts"));
       continue;
     }
 
@@ -131,7 +131,7 @@ export default [
     packages: "bundle",
     banner: "#!/usr/bin/env node",
     minify: true,
-    clean: true,
+    clean: false,
     plugins: [markCliExecutable],
   },
 ] satisfies DefineConfigItem[];

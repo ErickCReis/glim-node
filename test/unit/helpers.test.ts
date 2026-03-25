@@ -21,32 +21,22 @@ describe("helpers", () => {
   it("hashes values consistently", () => {
     expect(md5("glim")).toBe("b5207da636c23a750d526f149c235b60");
     expect(sha1("glim")).toBe("a6c8ffc2363fa9a96cd220f16a7ac84681c1d424");
-    expect(sha256("glim")).toBe(
-      "a9cff6ad698ae78e6e9b764b3da78d9c5f41fa4af78f172eb730e1cd465c4026",
-    );
+    expect(sha256("glim")).toBe("a9cff6ad698ae78e6e9b764b3da78d9c5f41fa4af78f172eb730e1cd465c4026");
   });
 
   it("formats env keys", () => {
     expect(formatEnvKey("DB")).toBe("DB");
     expect(formatEnvKey("DB", "billing-service")).toBe("DB_BILLING_SERVICE");
-    expect(formatEnvKey("DB", "billing", "db-reader")).toBe(
-      "DB_BILLING_READER",
-    );
+    expect(formatEnvKey("DB", "billing", "db-reader")).toBe("DB_BILLING_READER");
   });
 
   it("normalizes trailing slashes", () => {
-    expect(ensureTrailingSlash("https://api.example.com")).toBe(
-      "https://api.example.com/",
-    );
-    expect(ensureTrailingSlash("https://api.example.com/")).toBe(
-      "https://api.example.com/",
-    );
+    expect(ensureTrailingSlash("https://api.example.com")).toBe("https://api.example.com/");
+    expect(ensureTrailingSlash("https://api.example.com/")).toBe("https://api.example.com/");
   });
 
   it("converts durations and calculates the remaining time until end of day", () => {
-    const nowSpy = spyOn(Date, "now").mockReturnValue(
-      Date.UTC(2026, 2, 24, 12, 30, 0),
-    );
+    const nowSpy = spyOn(Date, "now").mockReturnValue(Date.UTC(2026, 2, 24, 12, 30, 0));
 
     expect(time("2h", { out: "m" })).toBe(120);
     expect(time.now({ out: "ms" })).toBe(Date.UTC(2026, 2, 24, 12, 30, 0));
@@ -215,10 +205,7 @@ describe("helpers", () => {
         APP_ENV: "development",
       },
       () => {
-        const logger = createLogger("billing") as unknown as Record<
-          string,
-          unknown
-        >;
+        const logger = createLogger("billing") as unknown as Record<string, unknown>;
         expect(logger.level).toBe("debug");
         expect(logger.messageKey).toBe("message");
         expect(logger.transport).toEqual({

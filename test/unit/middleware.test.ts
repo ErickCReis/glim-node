@@ -2,18 +2,11 @@ import { afterEach, describe, expect, it, mock } from "bun:test";
 import { Hono } from "hono";
 import { authMiddleware } from "../../src/middleware/auth-middleware";
 import { bifrostMiddleware } from "../../src/middleware/bifrost-middleware";
-import {
-  cacheMiddleware,
-  cacheMiddlewareByUser,
-} from "../../src/middleware/cache-middleware";
+import { cacheMiddleware, cacheMiddlewareByUser } from "../../src/middleware/cache-middleware";
 import { clientMiddleware } from "../../src/middleware/client-middleware";
 import { errorMiddleware } from "../../src/middleware/error-middleware";
 import { loggerMiddleware } from "../../src/middleware/logger-middleware";
-import {
-  createCacheDriver,
-  createLoggerMock,
-  createNodeServerEnv,
-} from "../fixtures";
+import { createCacheDriver, createLoggerMock, createNodeServerEnv } from "../fixtures";
 import { withEnv } from "../support";
 
 afterEach(() => {
@@ -24,9 +17,7 @@ describe("middleware", () => {
   it("reads auth from the x-auth header", async () => {
     const app = new Hono();
     app.use("*", authMiddleware);
-    app.get("/", (c) =>
-      c.json((c.var as never as { auth: Record<string, unknown> }).auth),
-    );
+    app.get("/", (c) => c.json((c.var as never as { auth: Record<string, unknown> }).auth));
 
     const response = await app.request("http://localhost/", {
       headers: {
@@ -53,15 +44,11 @@ describe("middleware", () => {
   it("reads client metadata from the x-client header", async () => {
     const app = new Hono();
     app.use("*", clientMiddleware);
-    app.get("/", (c) =>
-      c.json((c.var as never as { client: Record<string, unknown> }).client),
-    );
+    app.get("/", (c) => c.json((c.var as never as { client: Record<string, unknown> }).client));
 
     const response = await app.request("http://localhost/", {
       headers: {
-        "x-client": btoa(
-          JSON.stringify({ id: 2, key: "web", version: "1.0.0" }),
-        ),
+        "x-client": btoa(JSON.stringify({ id: 2, key: "web", version: "1.0.0" })),
       },
     });
 
@@ -109,10 +96,7 @@ describe("middleware", () => {
         const app = new Hono();
 
         app.use("*", async (c, next) => {
-          (c as never as { set: (key: string, value: unknown) => void }).set(
-            "driver",
-            driver,
-          );
+          (c as never as { set: (key: string, value: unknown) => void }).set("driver", driver);
           await next();
         });
         app.use("*", cacheMiddleware(300));
@@ -145,10 +129,7 @@ describe("middleware", () => {
         const app = new Hono();
 
         app.use("*", async (c, next) => {
-          (c as never as { set: (key: string, value: unknown) => void }).set(
-            "driver",
-            driver,
-          );
+          (c as never as { set: (key: string, value: unknown) => void }).set("driver", driver);
           await next();
         });
         app.use("*", cacheMiddleware(300));
@@ -173,12 +154,9 @@ describe("middleware", () => {
       async () => {
         const app = new Hono();
         app.use("*", async (c, next) => {
-          (c as never as { set: (key: string, value: unknown) => void }).set(
-            "driver",
-            {
-              inDb: async (_db: number, fn: () => Promise<unknown>) => fn(),
-            },
-          );
+          (c as never as { set: (key: string, value: unknown) => void }).set("driver", {
+            inDb: async (_db: number, fn: () => Promise<unknown>) => fn(),
+          });
           await next();
         });
         app.use("*", cacheMiddlewareByUser(10));
@@ -212,11 +190,7 @@ describe("middleware", () => {
         });
         app.onError((_error, c) => c.body(null, 500));
 
-        const response = await app.request(
-          "http://localhost/boom",
-          {},
-          createNodeServerEnv(),
-        );
+        const response = await app.request("http://localhost/boom", {}, createNodeServerEnv());
 
         expect(response.status).toBe(500);
         expect(await response.json()).toMatchObject({
@@ -245,11 +219,7 @@ describe("middleware", () => {
         app.use("*", loggerMiddleware({ logger } as never));
         app.get("/", (c) => c.json({ ok: true }));
 
-        const response = await app.request(
-          "http://localhost/",
-          {},
-          createNodeServerEnv(),
-        );
+        const response = await app.request("http://localhost/", {}, createNodeServerEnv());
 
         expect(response.status).toBe(200);
         expect(logger.info).toHaveBeenCalledTimes(2);

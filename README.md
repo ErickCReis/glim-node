@@ -18,11 +18,13 @@ bun add glim-node
 ## Quick Start
 
 1. Create a new project:
+
 ```bash
 bunx glim-node create
 ```
 
 2. Start the development server:
+
 ```bash
 cd my-app
 docker compose up
@@ -31,38 +33,40 @@ docker compose up
 ## Usage Examples
 
 ### Module Setup (src/modules/my-module/index.ts)
+
 ```typescript
-import { createModule } from 'glim-node';
-import { router } from './router';
+import { createModule } from "glim-node";
+import { router } from "./router";
 
 // Create a module with integrations
-const myModule = await createModule('my-module', {
+const myModule = await createModule("my-module", {
   db: {
-    type: 'db.postgres',
+    type: "db.postgres",
   },
   cache: {
-    type: 'cache.redis',
+    type: "cache.redis",
   },
   storage: {
-    type: 'storage.s3',
+    type: "storage.s3",
   },
   notification: {
-    type: 'notification.sns',
-    config: { topics: ['my-topic'] },
+    type: "notification.sns",
+    config: { topics: ["my-topic"] },
   },
 });
 
 // Load router with type-safe client
 const hcWithType = myModule.loadRouter(router);
-export const client = hcWithType('http://localhost:3000');
+export const client = hcWithType("http://localhost:3000");
 
 export { myModule };
 ```
 
 ### Server Start (src/index.ts)
+
 ```typescript
-import { start } from 'glim-node/server';
-import { myModule } from './modules/my-module';
+import { start } from "glim-node/server";
+import { myModule } from "./modules/my-module";
 
 // Start the server with your module
 start([myModule]);

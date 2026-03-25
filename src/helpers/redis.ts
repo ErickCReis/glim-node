@@ -5,10 +5,7 @@ import { z } from "zod";
 class Redis extends IORedis {
   #runningInDb: Promise<any> | null = null;
 
-  async inDb<TResult>(
-    db: number,
-    callback: (...args: any[]) => Promise<TResult>,
-  ) {
+  async inDb<TResult>(db: number, callback: (...args: any[]) => Promise<TResult>) {
     const operation = async () => {
       await this.select(db <= 0 ? 0 : (db % 15) + 1);
       try {

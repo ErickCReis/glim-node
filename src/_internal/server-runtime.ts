@@ -32,8 +32,7 @@ type ServerRuntime = {
 function resolveRuntime(runtime: ServerRuntime = {}) {
   return {
     createLogger: runtime.createLogger ?? createLogger,
-    createCacheDriverMiddleware:
-      runtime.createCacheDriverMiddleware ?? cacheDriverMiddleware,
+    createCacheDriverMiddleware: runtime.createCacheDriverMiddleware ?? cacheDriverMiddleware,
     serve: runtime.serve ?? serve,
     showRoutes: runtime.showRoutes ?? showRoutes,
     exit: runtime.exit ?? process.exit,
@@ -72,9 +71,7 @@ export async function createServerAppWithRuntime(
       loggerMiddleware({ logger: mainLogger }),
       validator("param", (value, c) => {
         const validResources = ["db", "cache", "storage"] as const;
-        const resource = value.resource as
-          | (typeof validResources)[number]
-          | undefined;
+        const resource = value.resource as (typeof validResources)[number] | undefined;
         if (resource && !validResources.includes(resource)) {
           return c.notFound();
         }
@@ -89,10 +86,7 @@ export async function createServerAppWithRuntime(
         const moduleArray = Array.isArray(modules) ? modules : [modules];
         const info = await Promise.all(
           moduleArray.map((module) =>
-            module.imAlive(
-              c.req.valid("param").resource ?? "all",
-              c.req.valid("query").force,
-            ),
+            module.imAlive(c.req.valid("param").resource ?? "all", c.req.valid("query").force),
           ),
         );
 
@@ -105,9 +99,7 @@ export async function createServerAppWithRuntime(
           Object.assign(response, item);
         }
 
-        const someIsDead = Object.values(response).some(
-          (item) => item.status === "dead",
-        );
+        const someIsDead = Object.values(response).some((item) => item.status === "dead");
         return c.json(response, someIsDead ? 500 : 200);
       },
     );
@@ -124,14 +116,10 @@ export async function createServerAppWithRuntime(
 
     if ("namespace" in module && module.namespace) {
       app
-        .use(
-          `/${module.namespace}/*`,
-          loggerMiddleware(module),
-          async (c, next) => {
-            module["~context"] = c;
-            await next();
-          },
-        )
+        .use(`/${module.namespace}/*`, loggerMiddleware(module), async (c, next) => {
+          module["~context"] = c;
+          await next();
+        })
         .route("/", module["~router"]);
       continue;
     }

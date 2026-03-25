@@ -1,9 +1,5 @@
 import { log } from "@clack/prompts";
-import {
-  createTempDrizzleConfig,
-  execCommand,
-  isAppStructure,
-} from "@core/bin/utils";
+import { createTempDrizzleConfig, execCommand, isAppStructure } from "@core/bin/utils";
 
 type GenerateMigrationRuntime = {
   createTempDrizzleConfig?: typeof createTempDrizzleConfig;
@@ -14,8 +10,7 @@ type GenerateMigrationRuntime = {
 
 function resolveRuntime(runtime: GenerateMigrationRuntime = {}) {
   return {
-    createTempDrizzleConfig:
-      runtime.createTempDrizzleConfig ?? createTempDrizzleConfig,
+    createTempDrizzleConfig: runtime.createTempDrizzleConfig ?? createTempDrizzleConfig,
     execCommand: runtime.execCommand ?? execCommand,
     isAppStructure: runtime.isAppStructure ?? isAppStructure,
     log: runtime.log ?? log,
@@ -34,12 +29,8 @@ export async function generateMigrationWithRuntime(
   resolvedRuntime.log.step("Gerando migrations");
 
   const isApp = await resolvedRuntime.isAppStructure();
-  const schemaPath = isApp
-    ? "./src/db/models/"
-    : `./modules/${moduleInput}/db/models/`;
-  const outPath = isApp
-    ? "./src/db/migrations"
-    : `./modules/${moduleInput}/db/migrations`;
+  const schemaPath = isApp ? "./src/db/models/" : `./modules/${moduleInput}/db/models/`;
+  const outPath = isApp ? "./src/db/migrations" : `./modules/${moduleInput}/db/migrations`;
 
   const drizzleConfigPath = await resolvedRuntime.createTempDrizzleConfig({
     dialect: "postgresql",

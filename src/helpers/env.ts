@@ -1,11 +1,6 @@
 import { z } from "zod";
 
-const appEnvOptions = [
-  "local",
-  "development",
-  "staging",
-  "production",
-] as const;
+const appEnvOptions = ["local", "development", "staging", "production"] as const;
 
 const appEnvOptionsMap = {
   production: "PRD",

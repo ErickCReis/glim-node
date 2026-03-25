@@ -40,7 +40,7 @@ jobs:
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
 
       - name: Bump patch version and create commit
-        run: npm version patch -m "chore(release): bump version to %s [skip ci]"
+        run: 'npm version patch -m "chore(release): bump version to %s [skip ci]"'
 
       - name: Format code and amend commit
         run: |
@@ -51,7 +51,7 @@ jobs:
       # 6. Push changes (commit and tag)
       - name: Push changes (commit and tag)
         run: git push origin main --follow-tags
-    
+
       - name: Build package
         run: bun run build
 

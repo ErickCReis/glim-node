@@ -23,10 +23,7 @@ describe("createImAlive", () => {
 
     await expect(imAlive("all", false)).resolves.toEqual(["OK"]);
     expect(execute).not.toHaveBeenCalled();
-    expect(appendFileSync).toHaveBeenCalledWith(
-      "/tmp/glim/im-alive.log",
-      "42\n",
-    );
+    expect(appendFileSync).toHaveBeenCalledWith("/tmp/glim/im-alive.log", "42\n");
   });
 
   it("checks feature drivers and writes the log when everything is alive", async () => {
@@ -66,10 +63,7 @@ describe("createImAlive", () => {
       "db.billing": { status: "alive", latency: expect.any(String) },
       "cache.billing": { status: "alive", latency: expect.any(String) },
     });
-    expect(appendFileSync).toHaveBeenCalledWith(
-      "/tmp/glim/im-alive.log",
-      "99\n",
-    );
+    expect(appendFileSync).toHaveBeenCalledWith("/tmp/glim/im-alive.log", "99\n");
   });
 
   it("does not write the log when a feature is dead", async () => {

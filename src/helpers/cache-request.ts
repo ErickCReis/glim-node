@@ -98,9 +98,7 @@ async function _invalidate(driver: Driver, userId: number, patterns: URL[]) {
   }
 
   const fullKey = `${cacheRequest.NAMESPACE}:${userId}`;
-  const regex = patterns.map(
-    (p) => new RegExp(`^${p.pathname.replaceAll("*", ".*")}:`),
-  );
+  const regex = patterns.map((p) => new RegExp(`^${p.pathname.replaceAll("*", ".*")}:`));
 
   return driver.inDb(userId, async () => {
     const keys = await driver.hkeys(fullKey);
