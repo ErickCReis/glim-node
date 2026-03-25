@@ -115,7 +115,10 @@ export default [
     format: "esm",
     sourcemap: "external",
     splitting: true,
-    dts: true,
+    dts: {
+      inferTypes: true,
+      tsgo: true,
+    },
     clean: true,
     plugins: [copyTemplates],
   },

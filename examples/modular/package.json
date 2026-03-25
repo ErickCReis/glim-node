@@ -3,8 +3,8 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "build": "tsc",
-    "check": "oxfmt && oxlint --fix && tsc --noEmit",
+    "build": "tsgo",
+    "check": "oxfmt && oxlint --fix && tsgo --noEmit",
     "dev": "bun --watch --env-file=.env ./modules/index.ts"
   },
   "dependencies": {
@@ -22,6 +22,7 @@
   "devDependencies": {
     "@types/node": "^25.5.0",
     "@types/pg": "^8.20.0",
+    "@typescript/native-preview": "^7.0.0-dev.20260325.1",
     "drizzle-kit": "^0.31.10",
     "oxfmt": "^0.42.0",
     "oxlint": "^1.57.0",
