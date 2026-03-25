@@ -38,7 +38,6 @@
     "build": "bunup",
     "check": "oxfmt && oxlint --fix && tsc --noEmit",
     "dev": "bunup --watch",
-    "release": "dotenv bun publish --access public",
     "test": "bun test && tsc --p test/types/tsconfig.json"
   },
   "dependencies": {

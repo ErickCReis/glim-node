@@ -21,10 +21,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          # Fetch all history for versioning and pushing
-          fetch-depth: 0
+        uses: actions/checkout@v6
 
       - name: Install Bun
         uses: oven-sh/setup-bun@v2
@@ -44,7 +41,7 @@ jobs:
 
       - name: Format code and amend commit
         run: |
-          bun run check
+          bun run --bun check
           git add .
           git commit --amend --no-edit
 

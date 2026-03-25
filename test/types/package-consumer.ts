@@ -1,6 +1,6 @@
-import { createApp, createModule } from "glim-node";
-import { authMiddleware, cacheMiddlewareByUser } from "glim-node/middleware";
-import { start } from "glim-node/server";
+import { createApp, createModule } from "../../src";
+import { authMiddleware, cacheMiddlewareByUser } from "../../src/middleware";
+import { start } from "../../src/server";
 import { Hono } from "hono";
 
 const app = await createApp({
