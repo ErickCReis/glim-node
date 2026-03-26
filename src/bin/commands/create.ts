@@ -23,7 +23,7 @@ type CreateProjectRuntime = {
 };
 
 function getDefaultTemplatesDir() {
-  return process.env.GLIM_TEMPLATES_DIR ?? path.join(import.meta.dirname, "templates");
+  return process.env.GLIM_TEMPLATES_DIR ?? path.join(import.meta.dirname, "..", "templates");
 }
 
 const defaultExit: typeof process.exit = (code) => process.exit(code);
