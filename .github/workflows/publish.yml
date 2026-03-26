@@ -47,9 +47,9 @@ jobs:
         run: |
           bun run --bun check
           git add .
-          VERSION=$(npm pkg get version)
+          VERSION=$(bun -p "require('./package.json').version")
           git commit -m "chore(release): bump version to v${VERSION} [skip ci]"
-          git tag "v${VERSION}"
+          git tag -a "v${VERSION}" -m "v${VERSION}"
 
       # 6. Push changes (commit and tag)
       - name: Push changes (commit and tag)
