@@ -4,6 +4,7 @@ import path from "node:path";
 import { parseArgs } from "node:util";
 import { cancel, intro, isCancel, log, select, text } from "@clack/prompts";
 import { isAppStructure } from "@core/bin/utils";
+import packageJson from "../../package.json" with { type: "json" };
 
 async function getSelectedModule(moduleArg?: string, folderPath = "") {
   log.step("Verificando módulos");
@@ -56,7 +57,12 @@ async function getSelectedModule(moduleArg?: string, folderPath = "") {
   return moduleArg;
 }
 
-async function handleCommand(command: string, args: Record<string, string>) {
+type CommandArgs = {
+  module?: string;
+  name?: string;
+};
+
+async function handleCommand(command: string, args: CommandArgs) {
   switch (command) {
     case "create": {
       const projectName = await validateAndGetProjectName(args.name);
@@ -144,8 +150,6 @@ function handleError(error: unknown, command?: string) {
 }
 
 async function main() {
-  intro("Glim Node");
-
   const {
     positionals: [directCommand],
     values: args,
@@ -155,12 +159,27 @@ async function main() {
     options: {
       module: { type: "string" },
       name: { type: "string" },
+      version: {
+        type: "boolean",
+        short: "v",
+      },
     },
   });
 
+  if (args.version) {
+    console.log(packageJson.version);
+    return;
+  }
+
+  intro(`Glim Node v${packageJson.version}`);
+  const commandArgs = {
+    module: args.module,
+    name: args.name,
+  } satisfies CommandArgs;
+
   try {
     const command = await selectCommand(directCommand);
-    await handleCommand(command, args);
+    await handleCommand(command, commandArgs);
     log.success(`Comando "${command}" executado com sucesso!`);
   } catch (error) {
     handleError(error, directCommand);

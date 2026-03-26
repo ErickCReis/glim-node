@@ -5,6 +5,7 @@ import path from "node:path";
 import { createProject } from "../../src/bin/commands/create";
 import { generateMigration } from "../../src/bin/commands/migrate-gen";
 import { runMigrations } from "../../src/bin/commands/migrate-up";
+import packageJson from "../../package.json" with { type: "json" };
 import { withCwd, withEnv, withSuppressedOutput, withTempDir } from "../support";
 
 async function writeExecutable(filePath: string, source: string) {
@@ -146,6 +147,31 @@ exit 0
 });
 
 describe("cli entrypoint", () => {
+  it("prints the cli version with -v and exits with code 0", async () => {
+    await new Promise<void>((resolve, reject) => {
+      const child = spawn("./dist/bin/index.js", ["-v"], {
+        cwd: process.cwd(),
+        stdio: ["ignore", "pipe", "pipe"],
+      });
+
+      let stdout = "";
+      child.stdout.on("data", (chunk) => {
+        stdout += chunk.toString();
+      });
+      child.stderr.on("data", () => undefined);
+      child.on("error", reject);
+      child.on("close", (code) => {
+        try {
+          expect(code).toBe(0);
+          expect(stdout.trim()).toBe(packageJson.version);
+          resolve();
+        } catch (error) {
+          reject(error);
+        }
+      });
+    });
+  });
+
   it("reports unknown commands from the built binary and exits with code 1", async () => {
     await new Promise<void>((resolve, reject) => {
       const child = spawn("./dist/bin/index.js", ["wat"], {
@@ -162,7 +188,7 @@ describe("cli entrypoint", () => {
       child.on("close", (code) => {
         try {
           expect(code).toBe(1);
-          expect(stdout).toContain("Glim Node");
+          expect(stdout).toContain(`Glim Node v${packageJson.version}`);
           expect(stdout).toContain('Erro ao executar o comando "wat": Comando desconhecido: "wat"');
           resolve();
         } catch (error) {
